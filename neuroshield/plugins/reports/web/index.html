@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' ws://localhost:* ws://127.0.0.1:*">
+    <title>NeuroShield BCI Security & Integrity Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Grotesk:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>window.WS_TOKEN = "WS_TOKEN_PLACEHOLDER";</script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                        mono: ['Space Grotesk', 'monospace'],
+                    },
+                    colors: {
+                        glass: 'rgba(255, 255, 255, 0.05)',
+                        glassBorder: 'rgba(255, 255, 255, 0.1)',
+                        neonBlue: '#00f3ff',
+                        neonPurple: '#b700ff',
+                        neonRed: '#ff0055',
+                        neonGreen: '#00ff9d',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #050505;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(0, 243, 255, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(183, 0, 255, 0.15) 0px, transparent 50%);
+            background-attachment: fixed;
+            color: #e2e8f0;
+        }
+        .glass-panel {
+            background: rgba(20, 20, 20, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+        
+        .pulse-red { animation: pulseRed 2s infinite; }
+        @keyframes pulseRed {
+            0% { box-shadow: 0 0 0 0 rgba(255, 0, 85, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 0, 85, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 0, 85, 0); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex text-sm overflow-hidden font-sans">
+    
+    <!-- Sidebar -->
+    <aside class="w-80 h-screen glass-panel flex flex-col p-6 overflow-y-auto border-r z-10 shrink-0">
+        <div class="mb-8 flex items-center justify-between">
+            <h2 class="text-2xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-neonBlue to-neonPurple">NeuroShield</h2>
+            <span class="px-2 py-1 text-xs font-mono font-bold bg-white/10 rounded">v1.0.0</span>
+        </div>
+        
+        <div class="space-y-6 flex-1">
+            <!-- Mode -->
+            <div>
+                <h3 class="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-3">Operation Mode</h3>
+                <div class="flex gap-2 bg-black/40 p-1 rounded-lg border border-white/5">
+                    <button id="btn-mode-eeg" class="flex-1 py-1.5 px-3 rounded-md text-xs font-semibold bg-white/10 text-white transition-colors" onclick="setMode('eeg')">EEG</button>
+                    <button id="btn-mode-dbs" class="flex-1 py-1.5 px-3 rounded-md text-xs font-semibold text-gray-400 hover:text-white transition-colors" onclick="setMode('dbs')">DBS</button>
+                </div>
+            </div>
+
+            <!-- Hardware -->
+            <div>
+                <h3 class="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-3">Physics & Hardware</h3>
+                <div class="flex gap-2 bg-black/40 p-1 rounded-lg border border-white/5">
+                    <button id="btn-mode-sim" class="flex-1 py-1.5 px-3 rounded-md text-xs font-semibold bg-white/10 text-white transition-colors" onclick="setHardwareMode(false)">Sim</button>
+                    <button id="btn-mode-hw" class="flex-1 py-1.5 px-3 rounded-md text-xs font-semibold text-gray-400 hover:text-white transition-colors" onclick="setHardwareMode(true)">Hardware</button>
+                </div>
+            </div>
+
+            <!-- Security Shield -->
+            <div>
+                <h3 class="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-3">Security Shield</h3>
+                <button id="btn-secure" class="w-full py-3 px-4 rounded-xl font-bold tracking-wide transition-all duration-300 bg-black/40 border border-white/10 text-gray-400 hover:bg-white/5" onclick="toggleSecurity()">
+                    SHIELD <span id="lbl-secure-status">OFF</span>
+                </button>
+                <button id="btn-nsp" class="w-full mt-2 py-3 px-4 rounded-xl font-bold tracking-wide transition-all duration-300 bg-black/40 border border-white/10 text-gray-400 hover:bg-white/5" onclick="toggleNSP()">
+                    NSP AUTH <span id="lbl-nsp-status">OFF</span>
+                </button>
+            </div>
+
+            <!-- Attacks -->
+            <div>
+                <h3 class="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-3">Threat Injection</h3>
+                <select id="attack-dropdown" class="w-full bg-black/40 border border-white/10 rounded-lg p-2.5 text-sm text-gray-200 focus:outline-none focus:border-neonBlue transition-colors appearance-none" onchange="injectAttack(this.value)">
+                    <option value="none">No Disruption (Nominal)</option>
+                    <!-- Options populated by JS -->
+                </select>
+            </div>
+
+            <!-- Sliders -->
+            <div>
+                <h3 class="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-4">Simulation Parameters</h3>
+                <div class="space-y-4">
+                    <div class="group">
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-gray-300">Stimulation Amp</span>
+                            <span class="font-mono text-neonBlue"><span id="lbl-stim-amp">0.0</span> mA</span>
+                        </div>
+                        <input type="range" id="slide-stim-amp" min="0.0" max="10.0" step="0.1" value="0.0" class="w-full h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-neonBlue" oninput="updateParam('stimulation_amplitude_ma', this.value)">
+                    </div>
+                    <div class="group">
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-gray-300">Stimulation Freq</span>
+                            <span class="font-mono text-neonBlue"><span id="lbl-stim-freq">130</span> Hz</span>
+                        </div>
+                        <input type="range" id="slide-stim-freq" min="10" max="200" step="1" value="130" class="w-full h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-neonBlue" oninput="updateParam('stimulation_frequency_hz', this.value)">
+                    </div>
+                    <div class="group">
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-gray-300">Electrode Impedance</span>
+                            <span class="font-mono text-neonBlue"><span id="lbl-impedance">5.0</span> kΩ</span>
+                        </div>
+                        <input type="range" id="slide-impedance" min="5.0" max="200.0" step="1.0" value="5.0" class="w-full h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-neonBlue" oninput="updateParam('impedance_kohm', this.value)">
+                    </div>
+                    <div class="group">
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-gray-300">Broadband Noise</span>
+                            <span class="font-mono text-neonBlue"><span id="lbl-noise">50.0</span> μV</span>
+                        </div>
+                        <input type="range" id="slide-noise" min="5" max="150" step="1" value="50" class="w-full h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-neonBlue" oninput="updateParam('noise_intensity', this.value)">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button class="mt-6 w-full py-2.5 rounded-lg border border-neonRed/30 text-neonRed font-semibold hover:bg-neonRed/10 transition-colors" onclick="injectAttack('none')">
+            System Reset
+        </button>
+    </aside>
+
+    <!-- Main Dashboard -->
+    <main class="flex-1 h-screen overflow-y-auto p-8 relative">
+        <header class="flex justify-between items-center mb-8">
+            <div>
+                <h1 class="text-3xl font-bold">Telemetry Dashboard</h1>
+                <p class="text-gray-400 mt-1">Real-time neurological security monitoring</p>
+            </div>
+            <div class="flex items-center gap-3 glass-panel px-4 py-2 rounded-full">
+                <span id="lbl-nsp-chip" class="hidden text-xs font-bold text-neonPurple border border-neonPurple/30 px-1 py-0.5 rounded bg-neonPurple/10 transition-opacity">NSP</span>
+                <span id="lbl-device-id" class="font-mono text-xs text-gray-300">virtual_openbci_board</span>
+                <span class="w-2 h-2 rounded-full bg-neonGreen animate-pulse"></span>
+                <span id="lbl-connection" class="text-xs font-bold text-neonGreen">CONNECTED</span>
+            </div>
+        </header>
+
+        <!-- Metrics Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Severity -->
+            <div id="card-severity" class="glass-panel p-6 rounded-2xl transition-all duration-300 border-l-4 border-l-neonGreen">
+                <h3 class="text-gray-400 text-sm font-semibold mb-2">ISO 14971 Severity</h3>
+                <div id="val-severity" class="text-2xl font-bold text-neonGreen mb-1">NEGLIGIBLE</div>
+                <div id="val-hazard-state" class="text-xs text-gray-400 font-mono">NOMINAL STATE</div>
+            </div>
+            <!-- Stimulation -->
+            <div id="card-stimulation" class="glass-panel p-6 rounded-2xl transition-all duration-300 border-l-4 border-l-gray-600">
+                <h3 class="text-gray-400 text-sm font-semibold mb-2">Stimulation Therapy</h3>
+                <div id="val-stimulation" class="text-2xl font-bold text-gray-300 mb-1">SUSPENDED</div>
+                <div id="val-stimulation-params" class="text-xs text-gray-400 font-mono">0.0 mA @ 0.0 Hz</div>
+            </div>
+            <!-- Confidence -->
+            <div class="glass-panel p-6 rounded-2xl transition-all border-l-4 border-l-neonBlue">
+                <h3 class="text-gray-400 text-sm font-semibold mb-2">Decoder Confidence</h3>
+                <div id="val-confidence" class="text-2xl font-bold text-neonBlue mb-1">1.00</div>
+                <div class="text-xs text-gray-400 font-mono">Mean accuracy</div>
+            </div>
+            <!-- Temp -->
+            <div id="card-temperature" class="glass-panel p-6 rounded-2xl transition-all border-l-4 border-l-neonGreen">
+                <h3 class="text-gray-400 text-sm font-semibold mb-2">Tissue Temp</h3>
+                <div id="val-temperature" class="text-2xl font-bold text-neonGreen mb-1">37.0 °C</div>
+                <div id="val-temp-state" class="text-xs text-gray-400 font-mono">NOMINAL</div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <!-- Electrodes -->
+            <div class="glass-panel p-6 rounded-2xl col-span-2">
+                <h3 class="text-lg font-bold mb-4">Contact Electrode Grid (Impedance)</h3>
+                <div class="grid grid-cols-4 gap-3" id="electrode-grid-container">
+                    <!-- Javascript will dynamically render electrodes based on active device's num_channels -->
+                </div>
+            </div>
+
+            <!-- Security Diagnostics -->
+            <div class="glass-panel p-6 rounded-2xl">
+                <h3 class="text-lg font-bold mb-4">Diagnostics</h3>
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center pb-3 border-b border-white/5">
+                        <span class="text-gray-300">Blocked Attacks</span>
+                        <span class="px-2 py-1 rounded bg-white/5 font-mono text-neonBlue font-bold" id="lbl-blocked-attacks">0</span>
+                    </div>
+                    <div class="flex justify-between items-center pb-3 border-b border-white/5">
+                        <span class="text-gray-300">Clamping Active</span>
+                        <span class="px-2 py-1 rounded bg-white/5 font-mono text-gray-400 font-bold" id="lbl-clamp-active">False</span>
+                    </div>
+                    <div class="flex justify-between items-center pb-3 border-b border-white/5">
+                        <span class="text-gray-300">Blocked MTU Abuses</span>
+                        <span class="px-2 py-1 rounded bg-white/5 font-mono text-gray-400 font-bold" id="lbl-blocked-mtu">0</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-300">Tissue Damage Risk</span>
+                        <span class="px-2 py-1 rounded bg-white/5 font-mono text-neonGreen font-bold" id="lbl-tissue-risk">NONE</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="space-y-6">
+            <div class="glass-panel p-6 rounded-2xl">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold">Real-Time Brainwaves / LFP</h3>
+                    <span class="text-xs text-neonBlue font-mono bg-neonBlue/10 px-2 py-1 rounded">Ch 0 (STN Beta)</span>
+                </div>
+                <div class="h-64 w-full">
+                    <canvas id="oscilloscope" class="w-full h-full"></canvas>
+                </div>
+            </div>
+
+            <div class="glass-panel p-6 rounded-2xl">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold">Decoder Confidence</h3>
+                    <span class="text-xs text-gray-400 font-mono">10s Rolling Window</span>
+                </div>
+                <div class="h-40 w-full">
+                    <canvas id="confidence-chart" class="w-full h-full"></canvas>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>

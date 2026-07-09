@@ -1,0 +1,82 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "neuroshield"
+version = "0.2.0"
+description = "Virtual neurosecurity laboratory for reproducible BCI/DBS/VNS security research"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [
+    {name = "NeuroShield Contributors"}
+]
+keywords = ["neurosecurity", "BCI", "EEG", "DBS", "simulation", "digital-twin", "security"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+    "Topic :: Security",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "numpy>=1.20.0",
+    "jinja2>=3.0.0",
+    "pydantic>=2.0.0",
+    "mcp>=1.0.0",
+]
+
+[project.optional-dependencies]
+brainflow = ["brainflow>=5.0.0"]
+edf = ["pyedflib>=0.1.30"]
+mne = ["mne>=1.0.0"]
+science = ["scipy>=1.7.0"]
+lsl = ["pylsl>=1.16.2"]
+dev = [
+    "pytest>=7.0.0",
+    "tomli>=2.0.0;python_version<'3.11'",
+    "ruff>=0.1.0",
+    "mypy>=1.0.0",
+]
+reports = ["weasyprint>=60.0.0"]
+docs = ["mkdocs-material>=9.0.0"]
+all = [
+    "neuroshield[brainflow,edf,mne,science,lsl,dev,reports,docs]",
+]
+
+[project.scripts]
+neuroshield = "neuroshield.__main__:main"
+
+[project.entry-points."neuroshield.plugins"]
+# Example: my_plugin = "my_package:get_plugin_info"
+
+[project.urls]
+Repository = "https://github.com/neuroshield/neuroshield"
+Documentation = "https://neuroshield.readthedocs.io"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["neuroshield*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+exclude = [".venv", "venv", "__pycache__"]
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
+strict_optional = false

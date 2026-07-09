@@ -1,0 +1,28 @@
+# Environments
+.env
+.venv/
+venv/
+env/
+ENV/
+
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Project specific dynamic output
+neuroshield_run_*
+
+# Local planning notes
+plans/
+
+# Local References
+openbci_reference/
+*.log

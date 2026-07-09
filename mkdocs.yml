@@ -1,0 +1,19 @@
+site_name: NeuroShield
+site_description: Virtual Neurosecurity Laboratory for Reproducible Research
+repo_url: https://github.com/neuroshield/neuroshield
+repo_name: neuroshield/neuroshield
+
+theme:
+  name: material
+  palette:
+    - scheme: slate
+      primary: teal
+      accent: cyan
+
+plugins:
+  - search
+
+nav:
+  - Overview: index.md
+  - Architecture: architecture.md
+  - API Reference: api.md

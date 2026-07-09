@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  neuroshield:
+    build: .
+    container_name: neuroshield-lab
+    ports:
+      - "7777:7777"
+    volumes:
+      - .:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: python -m neuroshield run --web-ui --secure-mode

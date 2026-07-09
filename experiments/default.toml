@@ -1,0 +1,50 @@
+# NeuroShield Experiment Configuration
+# Run with: python -m neuroshield run experiments/default.toml
+
+[experiment]
+name = "default_eeg_baseline"
+seed = 42
+duration_sec = 15.0
+interval_sec = 0.1
+
+[device]
+type = "synthetic"
+sample_rate = 250
+num_channels = 8
+
+[dataset]
+# path = "datasets/sample_eeg.edf"  # Uncomment to use a real recording
+loop = true
+
+[attacks]
+active = []
+target_channels = [1, 3, 5, 7]
+noise_level_uv = 50.0
+drift_rate_uv_per_sec = 20.0
+spike_impedance_kohm = 150.0
+attenuation_factor = 0.05
+
+[security]
+enabled = false
+rms_high_threshold = 120.0
+rms_low_threshold = 0.5
+beta_power_threshold = 35.0
+max_stimulation_amplitude_ma = 4.0
+
+[output]
+report_prefix = "experiment_baseline"
+formats = ["json", "html", "md"]
+no_report = false
+
+[web]
+enabled = false
+port = 7777
+open_browser = true
+
+[emulation]
+openbci = false
+ble = false
+ble_attack = ""
+dbs_mode = false
+dbs_attack = ""
+hardware_loopback = false
