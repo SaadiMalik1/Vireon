@@ -12,6 +12,20 @@ const oscCtx = oscCanvas.getContext('2d');
 const chartCanvas = document.getElementById('confidence-chart');
 const chartCtx = chartCanvas.getContext('2d');
 
+// Colors matching Tailwind config in index.html
+const COLORS = {
+    slate900: '#0f172a',
+    slate800: '#1e293b',
+    slate700: '#334155',
+    slate500: '#64748b',
+    blue500: '#3b82f6',
+    blue400: '#60a5fa',
+    emerald500: '#10b981',
+    amber500: '#f59e0b',
+    rose500: '#f43f5e',
+    rose400: '#fb7185'
+};
+
 // Resize canvases dynamically
 function resizeCanvases() {
     oscCanvas.width = oscCanvas.parentElement.clientWidth;
@@ -98,16 +112,31 @@ function updateControlButtons(context) {
     securityActive = context.secure_mode;
     nspActive = context.nsp_mode;
     activeAttack = context.active_attack;
+    
     // Update mode buttons
-    document.getElementById('btn-mode-eeg').classList.toggle('active', !context.dbs_mode);
-    document.getElementById('btn-mode-dbs').classList.toggle('active', context.dbs_mode);
+    const btnEeg = document.getElementById('btn-mode-eeg');
+    const btnDbs = document.getElementById('btn-mode-dbs');
+    if (!context.dbs_mode) {
+        btnEeg.className = 'flex-1 py-1.5 px-3 rounded-md text-xs font-medium bg-slate-800 text-white transition-colors';
+        btnDbs.className = 'flex-1 py-1.5 px-3 rounded-md text-xs font-medium text-slate-400 hover:text-white transition-colors';
+    } else {
+        btnEeg.className = 'flex-1 py-1.5 px-3 rounded-md text-xs font-medium text-slate-400 hover:text-white transition-colors';
+        btnDbs.className = 'flex-1 py-1.5 px-3 rounded-md text-xs font-medium bg-slate-800 text-white transition-colors';
+    }
 
     // Update hardware mode buttons
     const hwMode = context.hardware_mode || false;
-    document.getElementById('btn-mode-sim').classList.toggle('active', !hwMode);
-    document.getElementById('btn-mode-hw').classList.toggle('active', hwMode);
+    const btnSim = document.getElementById('btn-mode-sim');
+    const btnHw = document.getElementById('btn-mode-hw');
+    if (!hwMode) {
+        btnSim.className = 'flex-1 py-1.5 px-3 rounded-md text-xs font-medium bg-slate-800 text-white transition-colors';
+        btnHw.className = 'flex-1 py-1.5 px-3 rounded-md text-xs font-medium text-slate-400 hover:text-white transition-colors';
+    } else {
+        btnSim.className = 'flex-1 py-1.5 px-3 rounded-md text-xs font-medium text-slate-400 hover:text-white transition-colors';
+        btnHw.className = 'flex-1 py-1.5 px-3 rounded-md text-xs font-medium bg-slate-800 text-white transition-colors';
+    }
 
-    // Update active attack
+    // Update active attack dropdown
     activeAttack = context.active_attack || 'none';
     const dropdown = document.getElementById('attack-dropdown');
     if (dropdown) {
@@ -118,39 +147,21 @@ function updateControlButtons(context) {
     const secureBtn = document.getElementById('btn-secure');
     const secureLbl = document.getElementById('lbl-secure-status');
     if (context.secure_mode) {
-        secureBtn.className = 'w-full py-3 px-4 rounded-xl font-bold tracking-wide transition-all duration-300 bg-white/10 border border-neonBlue text-neonBlue shadow-[0_0_15px_rgba(0,243,255,0.3)]';
+        secureBtn.className = 'w-full py-2.5 px-4 rounded-lg font-semibold tracking-wide transition-colors bg-blue-500/10 border border-blue-500 text-blue-400';
         secureLbl.textContent = 'ON';
     } else {
-        secureBtn.className = 'w-full py-3 px-4 rounded-xl font-bold tracking-wide transition-all duration-300 bg-black/40 border border-white/10 text-gray-400 hover:bg-white/5';
+        secureBtn.className = 'w-full py-2.5 px-4 rounded-lg font-semibold tracking-wide transition-colors bg-slate-950 border border-slate-800 text-slate-400 hover:bg-slate-800';
         secureLbl.textContent = 'OFF';
     }
 
     const nspBtn = document.getElementById('btn-nsp');
     const nspLbl = document.getElementById('lbl-nsp-status');
     if (context.nsp_mode) {
-        nspBtn.className = 'w-full mt-2 py-3 px-4 rounded-xl font-bold tracking-wide transition-all duration-300 bg-white/10 border border-neonPurple text-neonPurple shadow-[0_0_15px_rgba(183,0,255,0.3)]';
+        nspBtn.className = 'w-full mt-2 py-2.5 px-4 rounded-lg font-semibold tracking-wide transition-colors bg-blue-500/10 border border-blue-500 text-blue-400';
         nspLbl.textContent = 'ON';
     } else {
-        nspBtn.className = 'w-full mt-2 py-3 px-4 rounded-xl font-bold tracking-wide transition-all duration-300 bg-black/40 border border-white/10 text-gray-400 hover:bg-white/5';
+        nspBtn.className = 'w-full mt-2 py-2.5 px-4 rounded-lg font-semibold tracking-wide transition-colors bg-slate-950 border border-slate-800 text-slate-400 hover:bg-slate-800';
         nspLbl.textContent = 'OFF';
-    }
-
-    // 3. Attack button highlights
-    const attackMap = {
-        'none': 'btn-attack-none',
-        'noise': 'btn-attack-noise',
-        'drift': 'btn-attack-drift',
-        'impedance': 'btn-attack-impedance',
-        'suppression': 'btn-attack-suppression',
-        'stimulation_leak': 'btn-attack-leak',
-        'phase_shift': 'btn-attack-phase'
-    };
-    
-    for (const [key, id] of Object.entries(attackMap)) {
-        const btn = document.getElementById(id);
-        if (btn) {
-            btn.classList.toggle('active', activeAttack === key);
-        }
     }
 }
 
@@ -188,12 +199,15 @@ let signalBuffer = [];
 function handleTelemetryState(state) {
     // Update connection tag
     const connTag = document.getElementById('lbl-connection');
+    const indicatorTag = document.getElementById('indicator-connection');
     if (state.connected) {
-        connTag.className = 'text-xs font-bold text-neonGreen';
+        connTag.className = 'text-xs font-semibold text-emerald-500 tracking-wide';
         connTag.textContent = 'CONNECTED';
+        indicatorTag.className = 'w-2 h-2 rounded-full bg-emerald-500 animate-pulse';
     } else {
-        connTag.className = 'text-xs font-bold text-gray-500';
+        connTag.className = 'text-xs font-semibold text-slate-500 tracking-wide';
         connTag.textContent = 'DISCONNECTED';
+        indicatorTag.className = 'w-2 h-2 rounded-full bg-slate-600';
     }
 
     const nspChip = document.getElementById('lbl-nsp-chip');
@@ -208,58 +222,49 @@ function handleTelemetryState(state) {
     const severityVal = document.getElementById('val-severity');
     const hazardVal = document.getElementById('val-hazard-state');
     
+    let sevCategory = state.iso_severity;
+    
     if (state.niss_score !== undefined) {
-        severityVal.textContent = state.iso_severity;
+        severityVal.textContent = sevCategory;
         hazardVal.textContent = `NISS: ${state.niss_score.toFixed(1)} | ${state.hazard_state}`;
-        severityCard.className = 'glass-panel p-6 rounded-2xl transition-all duration-300 border-l-4';
-        if (state.iso_severity === 'CRITICAL') {
-            severityCard.classList.add('border-l-neonRed');
-            severityVal.style.color = '#ff0055';
-        } else if (state.iso_severity === 'MARGINAL') {
-            severityCard.classList.add('border-l-yellow-400');
-            severityVal.style.color = '#facc15'; // yellow-400
-        } else {
-            severityCard.classList.add('border-l-neonGreen');
-            severityVal.style.color = '#00ff9d';
-        }
     } else {
-        severityVal.textContent = state.iso_severity;
+        severityVal.textContent = sevCategory;
         hazardVal.textContent = state.hazard_state;
-        severityCard.className = 'glass-panel p-6 rounded-2xl transition-all duration-300 border-l-4';
-        if (state.iso_severity === 'CATASTROPHIC') {
-            severityCard.classList.add('border-l-neonRed', 'pulse-red');
-            severityVal.style.color = '#ff0055';
-        } else if (state.iso_severity === 'CRITICAL') {
-            severityCard.classList.add('border-l-neonRed');
-            severityVal.style.color = '#ff0055';
-        } else if (state.iso_severity === 'MARGINAL') {
-            severityCard.classList.add('border-l-yellow-400');
-            severityVal.style.color = '#facc15';
-        } else {
-            severityCard.classList.add('border-l-neonGreen');
-            severityVal.style.color = '#00ff9d';
-        }
     }
 
+    severityCard.className = 'bg-slate-900 p-5 rounded-xl border border-slate-800 border-l-4 shadow-sm transition-colors';
+    if (sevCategory === 'CATASTROPHIC' || sevCategory === 'CRITICAL') {
+        severityCard.classList.add('border-l-rose-500');
+        severityVal.className = 'text-xl font-bold text-rose-500 mb-1';
+        if (sevCategory === 'CATASTROPHIC') severityCard.classList.add('animate-pulse');
+    } else if (sevCategory === 'MARGINAL') {
+        severityCard.classList.add('border-l-amber-500');
+        severityVal.className = 'text-xl font-bold text-amber-500 mb-1';
+    } else {
+        severityCard.classList.add('border-l-emerald-500');
+        severityVal.className = 'text-xl font-bold text-emerald-500 mb-1';
+    }
+
+    // Temperature Updates
     if (state.temperature_celsius !== undefined) {
         const tempVal = document.getElementById('val-temperature');
         const tempState = document.getElementById('val-temp-state');
         const tempCard = document.getElementById('card-temperature');
         if (tempVal && tempState && tempCard) {
             tempVal.textContent = `${state.temperature_celsius.toFixed(1)} °C`;
-            tempCard.className = 'glass-panel p-6 rounded-2xl transition-all duration-300 border-l-4';
+            tempCard.className = 'bg-slate-900 p-5 rounded-xl border border-slate-800 border-l-4 shadow-sm transition-colors';
             if (state.temperature_celsius >= 40.0) {
-                tempCard.classList.add('border-l-neonRed', 'pulse-red');
+                tempCard.classList.add('border-l-rose-500', 'animate-pulse');
                 tempState.textContent = "THERMAL HAZARD";
-                tempVal.style.color = '#ff0055';
+                tempVal.className = 'text-xl font-bold text-rose-500 mb-1';
             } else if (state.temperature_celsius >= 39.0) {
-                tempCard.classList.add('border-l-yellow-400');
+                tempCard.classList.add('border-l-amber-500');
                 tempState.textContent = "ELEVATED";
-                tempVal.style.color = '#facc15';
+                tempVal.className = 'text-xl font-bold text-amber-500 mb-1';
             } else {
-                tempCard.classList.add('border-l-neonGreen');
+                tempCard.classList.add('border-l-emerald-500');
                 tempState.textContent = "NOMINAL";
-                tempVal.style.color = '#00ff9d';
+                tempVal.className = 'text-xl font-bold text-emerald-500 mb-1';
             }
         }
     }
@@ -271,27 +276,25 @@ function handleTelemetryState(state) {
     
     if (state.stimulation_enabled) {
         stimVal.textContent = 'ACTIVE';
-        stimVal.style.color = '#00f3ff';
+        stimVal.className = 'text-xl font-bold text-blue-500 mb-1';
         stimParams.textContent = `${state.stimulation_amplitude_ma.toFixed(1)} mA @ ${state.stimulation_frequency_hz.toFixed(1)} Hz`;
-        stimCard.style.boxShadow = '0 0 15px rgba(0, 243, 255, 0.2)';
-        stimCard.className = 'glass-panel p-6 rounded-2xl transition-all duration-300 border-l-4 border-l-neonBlue';
+        stimCard.className = 'bg-slate-900 p-5 rounded-xl border border-slate-800 border-l-4 border-l-blue-500 shadow-sm transition-colors';
     } else {
         stimVal.textContent = 'SUSPENDED';
-        stimVal.style.color = '#9ca3af';
+        stimVal.className = 'text-xl font-bold text-slate-500 mb-1';
         stimParams.textContent = '0.0 mA @ 0.0 Hz';
-        stimCard.style.boxShadow = 'none';
-        stimCard.className = 'glass-panel p-6 rounded-2xl transition-all duration-300 border-l-4 border-l-gray-600';
+        stimCard.className = 'bg-slate-900 p-5 rounded-xl border border-slate-800 border-l-4 border-l-slate-700 shadow-sm transition-colors';
     }
 
     // Update Decoder Confidence Card
     const confVal = document.getElementById('val-confidence');
     confVal.textContent = state.decoder_confidence.toFixed(2);
     if (state.decoder_confidence < 0.7) {
-        confVal.style.color = '#ff0055';
+        confVal.className = 'text-xl font-bold text-rose-500 mb-1';
     } else if (state.decoder_confidence < 0.9) {
-        confVal.style.color = '#facc15';
+        confVal.className = 'text-xl font-bold text-amber-500 mb-1';
     } else {
-        confVal.style.color = '#00f3ff';
+        confVal.className = 'text-xl font-bold text-blue-500 mb-1';
     }
 
     // Update electrode contact impedances
@@ -302,11 +305,11 @@ function handleTelemetryState(state) {
             gridContainer.innerHTML = '';
             for (let ch = 0; ch < state.num_channels; ch++) {
                 const elDiv = document.createElement('div');
-                elDiv.className = 'bg-black/40 border border-white/5 rounded-lg p-3 flex flex-col items-center justify-center gap-1';
+                elDiv.className = 'bg-slate-950 border border-slate-800 rounded-lg p-3 flex flex-col items-center justify-center gap-1';
                 elDiv.id = `el-${ch}`;
                 elDiv.innerHTML = `
-                    <span class="text-xs text-gray-400">Ch ${ch}</span>
-                    <span class="font-mono text-neonGreen text-sm font-bold el-val">5.0 kΩ</span>
+                    <span class="text-xs text-slate-400 font-medium">Ch ${ch}</span>
+                    <span class="font-mono text-emerald-500 text-sm font-semibold el-val">5.0 kΩ</span>
                 `;
                 gridContainer.appendChild(elDiv);
             }
@@ -319,13 +322,13 @@ function handleTelemetryState(state) {
                 if (valSpan) {
                     const imp = state.electrode_impedances[ch] !== undefined ? state.electrode_impedances[ch] : 5.0;
                     valSpan.textContent = `${imp.toFixed(1)} kΩ`;
-                    valSpan.className = 'font-mono text-sm font-bold el-val '; 
+                    valSpan.className = 'font-mono text-sm font-semibold el-val '; 
                     if (imp < 15.0) {
-                        valSpan.className += 'text-neonGreen';
+                        valSpan.className += 'text-emerald-500';
                     } else if (imp < 50.0) {
-                        valSpan.className += 'text-yellow-400';
+                        valSpan.className += 'text-amber-500';
                     } else {
-                        valSpan.className += 'text-neonRed';
+                        valSpan.className += 'text-rose-500';
                     }
                 }
             }
@@ -340,10 +343,10 @@ function handleTelemetryState(state) {
     const clampBadge = document.getElementById('lbl-clamp-active');
     if (state.clamping_active) {
         clampBadge.textContent = 'ACTIVE';
-        clampBadge.className = 'px-2 py-1 rounded bg-neonRed/20 font-mono text-neonRed font-bold';
+        clampBadge.className = 'px-2 py-1 rounded bg-rose-500/10 border border-rose-500/30 font-mono text-rose-500 font-medium text-xs';
     } else {
         clampBadge.textContent = 'INACTIVE';
-        clampBadge.className = 'px-2 py-1 rounded bg-white/5 font-mono text-gray-400 font-bold';
+        clampBadge.className = 'px-2 py-1 rounded bg-slate-950 border border-slate-800 font-mono text-slate-400 font-medium text-xs';
     }
 
     // Sync slider positions from live telemetry values
@@ -376,8 +379,10 @@ function connectWebSocket() {
 
     ws.onopen = () => {
         const connTag = document.getElementById('lbl-connection');
-        connTag.className = 'conn-tag tag-connected';
-        connTag.textContent = 'Connected';
+        const indicatorTag = document.getElementById('indicator-connection');
+        connTag.className = 'text-xs font-semibold text-emerald-500 tracking-wide';
+        connTag.textContent = 'CONNECTED';
+        indicatorTag.className = 'w-2 h-2 rounded-full bg-emerald-500 animate-pulse';
     };
 
     ws.onmessage = (event) => {
@@ -391,8 +396,10 @@ function connectWebSocket() {
 
     ws.onclose = () => {
         const connTag = document.getElementById('lbl-connection');
-        connTag.className = 'conn-tag tag-disconnected';
-        connTag.textContent = 'Disconnected';
+        const indicatorTag = document.getElementById('indicator-connection');
+        connTag.className = 'text-xs font-semibold text-slate-500 tracking-wide';
+        connTag.textContent = 'DISCONNECTED';
+        indicatorTag.className = 'w-2 h-2 rounded-full bg-slate-600';
         // Try reconnecting after 2 seconds
         setTimeout(connectWebSocket, 2000);
     };
@@ -410,18 +417,18 @@ function animateOscilloscope() {
     
     // Draw background horizontal center line
     oscCtx.beginPath();
-    oscCtx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+    oscCtx.strokeStyle = COLORS.slate800;
     oscCtx.lineWidth = 1;
     oscCtx.moveTo(0, oscCanvas.height / 2);
     oscCtx.lineTo(oscCanvas.width, oscCanvas.height / 2);
     oscCtx.stroke();
 
     oscCtx.beginPath();
-    oscCtx.lineWidth = 2.5;
+    oscCtx.lineWidth = 2.0;
     
     // Select oscilloscope waveform styling based on active attacks
     if (activeAttack === 'suppression') {
-        oscCtx.strokeStyle = '#9ca3af'; // gray
+        oscCtx.strokeStyle = COLORS.slate500;
         oscCtx.moveTo(0, oscCanvas.height / 2);
         oscCtx.lineTo(oscCanvas.width, oscCanvas.height / 2);
         oscCtx.stroke();
@@ -429,12 +436,11 @@ function animateOscilloscope() {
     }
     
     if (activeAttack === 'noise' || activeAttack.startsWith('qif-')) {
-        // Generic red alert for injected dynamic attacks
-        oscCtx.strokeStyle = '#ff0055'; // neonRed
+        oscCtx.strokeStyle = COLORS.rose500;
     } else if (activeAttack === 'phase_shift') {
-        oscCtx.strokeStyle = '#b700ff'; // neonPurple
+        oscCtx.strokeStyle = COLORS.amber500;
     } else {
-        oscCtx.strokeStyle = '#00f3ff'; // neonBlue
+        oscCtx.strokeStyle = COLORS.blue400;
     }
 
     const midY = oscCanvas.height / 2;
@@ -477,23 +483,23 @@ function animateConfidenceChart() {
     // Draw Y safety boundary limit line (0.70 threshold)
     const limitY = h - (0.70 * h);
     chartCtx.beginPath();
-    chartCtx.strokeStyle = '#facc15'; // yellow
-    chartCtx.lineWidth = 1.5;
-    chartCtx.setLineDash([5, 5]);
+    chartCtx.strokeStyle = COLORS.amber500;
+    chartCtx.lineWidth = 1.0;
+    chartCtx.setLineDash([4, 4]);
     chartCtx.moveTo(0, limitY);
     chartCtx.lineTo(w, limitY);
     chartCtx.stroke();
     chartCtx.setLineDash([]); // Reset
     
     // Draw safety limit text
-    chartCtx.fillStyle = '#facc15';
-    chartCtx.font = '10px Space Grotesk';
+    chartCtx.fillStyle = COLORS.amber500;
+    chartCtx.font = '10px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
     chartCtx.fillText('0.70 Safety Limit', 10, limitY - 5);
 
     // Draw Rolling confidence line
     chartCtx.beginPath();
-    chartCtx.strokeStyle = '#00f3ff'; // neonBlue
-    chartCtx.lineWidth = 3;
+    chartCtx.strokeStyle = COLORS.blue500;
+    chartCtx.lineWidth = 2.0;
     
     const step = w / 99;
     for (let i = 0; i < confidenceHistory.length; i++) {
