@@ -64,7 +64,7 @@ class Coordinator:
         self.web_server = None
         self.ws_server = None
         self.lsl_streamer = None
-        self.stix_mapper = None
+        self.threat_intel = None
         self.nsp_wrapper = None
 
         # Shared mutable simulation context for web UI control
@@ -89,6 +89,17 @@ class Coordinator:
     def setup(self):
         """Initialize all components based on config. Call once before run()."""
         print("[NeuroShield] Initializing Virtual Laboratory...")
+        
+        # 0. Enforce Neuroethics Guardrails
+        try:
+            from neuroshield.core.guardrails import GuardrailValidator, GuardrailViolation
+            validator = GuardrailValidator()
+            validator.validate_experiment_config(self.config)
+            print("[NeuroShield] Neuroethics Guardrails Validated (G1-G8).")
+        except GuardrailViolation as e:
+            print(f"\n[NeuroShield] FATAL ERROR: {e}\nSimulation aborted to maintain epistemic integrity.")
+            import sys
+            sys.exit(1)
 
         # Register all built-in plugins
         register_builtin_plugins(self.registry)
@@ -104,10 +115,15 @@ class Coordinator:
         )
         self.attack_engine = SignalAttackEngine(self.twin, self.event_bus)
 
-        # 1.5 Initialize Threat Intel (STIX) Mapping
-        if getattr(self.config, 'stix', None) and getattr(self.config.stix, 'enabled', False):
-            from neuroshield.core.stix_mapper import StixMapper
-            self.stix_mapper = StixMapper(self.config.stix.bundle_path)
+        # 1.5 Initialize Threat Intel (TARA Mapping)
+        try:
+            from neuroshield.core.threat_intel import ThreatIntelligence
+            # Default path to the neurosecurity submodule/directory
+            registry_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "neurosecurity", "datalake", "qtara-registrar.json")
+            self.threat_intel = ThreatIntelligence(registry_path)
+        except Exception as e:
+            print(f"[NeuroShield] Could not initialize ThreatIntelligence: {e}")
+            self.threat_intel = None
 
         # Enable event logging for reproducibility
         self.event_bus.enable_logging(True)
@@ -279,6 +295,13 @@ class Coordinator:
             state = self.twin.get_state()
             # Send Channel 0 signal chunk as JSON-serializable list
             state["signal_chunk"] = data[0, :].tolist()
+            
+            active_attack = self._simulation_context.get("active_attack", "none")
+            state["active_attack"] = active_attack
+            if self.threat_intel and active_attack != "none":
+                tara_intel = self.threat_intel.resolve_attack(active_attack)
+                if tara_intel:
+                    state["threat_intel"] = tara_intel
             
             if self._simulation_context.get("nsp_mode", False) and self.nsp_wrapper:
                 state = self.nsp_wrapper.encrypt_payload(state)
@@ -547,11 +570,11 @@ class Coordinator:
                 "active_attack": active_attack
             }
             
-            # Map Active Attack to STIX Intel if mapper exists
-            if self.stix_mapper and active_attack != "none":
-                stix_intel = self.stix_mapper.resolve_attack(active_attack)
-                if stix_intel:
-                    telemetry["threat_intel"] = stix_intel
+            # Map Active Attack to TARA Intel
+            if self.threat_intel and active_attack != "none":
+                tara_intel = self.threat_intel.resolve_attack(active_attack)
+                if tara_intel:
+                    telemetry["threat_intel"] = tara_intel
             
             if self.config.security.enabled and self.ids:
                 telemetry["mean_confidence"] = self.ids.history_confidence[-1] if self.ids.history_confidence else 1.0
