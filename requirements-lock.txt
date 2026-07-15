@@ -6,7 +6,7 @@ autocommand==2.2.2
 beautifulsoup4==4.15.0
 binaryornot==0.6.0
 boolean.py==5.0
-breezy==3.3.21
+breezy==3.3.22
 Brotli==1.2.0
 brotlicffi==1.2.0.1
 btrfsutil==7.0
