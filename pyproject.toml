@@ -41,7 +41,7 @@ dependencies = [
 [project.optional-dependencies]
 brainflow = ["brainflow~=5.0.0"]
 edf = ["pyedflib~=0.1.30"]
-mne = ["mne~=1.0.0"]
+mne = ["mne>=1.0,<1.13"]
 science = ["scipy~=1.7.0"]
 lsl = ["pylsl~=1.16.2"]
 dev = [
