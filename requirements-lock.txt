@@ -91,7 +91,7 @@ pygdbmi==0.11.0.0
 Pygments==2.20.0
 PyGObject==3.56.3
 pyparsing==3.3.2
-pytest==9.0.3
+pytest==9.1.1
 python-dateutil==2.9.0
 python-debian==1.1.1
 python-dotenv==1.2.2
