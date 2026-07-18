@@ -3,6 +3,8 @@ import time
 from vireon.core.twin import DigitalTwin
 from vireon.core.attack import SignalAttackEngine
 from vireon.core.engine import ReplayEngine
+from vireon.core.state_store import StateStore
+from vireon.core.event_bus import EventBus
 
 class MockProvider:
     def __init__(self):
@@ -27,10 +29,13 @@ class MockProvider:
 def test_replay_engine_start_stop():
     twin = DigitalTwin(num_channels=4)
     twin.sample_rate = 250
+    event_bus = EventBus()
+    state_store = StateStore(event_bus)
+    state_store.set("sample_rate", 250)
     engine = SignalAttackEngine(twin)
     provider = MockProvider()
     
-    replay = ReplayEngine(twin, engine, provider=provider)
+    replay = ReplayEngine(state_store, engine, provider=provider)
     replay.start(interval_sec=0.01)
     assert replay.running is True
     time.sleep(0.05)
@@ -40,8 +45,10 @@ def test_replay_engine_start_stop():
 
 def test_replay_engine_inject_attack():
     twin = DigitalTwin(num_channels=4)
+    event_bus = EventBus()
+    state_store = StateStore(event_bus)
     engine = SignalAttackEngine(twin)
-    replay = ReplayEngine(twin, engine)
+    replay = ReplayEngine(state_store, engine)
     
     replay.inject_attack("noise")
     assert len(engine.modifiers) == 1
@@ -54,10 +61,12 @@ def test_replay_engine_inject_attack():
 
 def test_replay_engine_fetch_data():
     twin = DigitalTwin(num_channels=4)
+    event_bus = EventBus()
+    state_store = StateStore(event_bus)
     engine = SignalAttackEngine(twin)
     provider = MockProvider()
     
-    replay = ReplayEngine(twin, engine, provider=provider)
+    replay = ReplayEngine(state_store, engine, provider=provider)
     data = replay._fetch_data(10, 4)
     assert data is not None
     assert data.shape == (4, 10)
@@ -70,7 +79,7 @@ def test_replay_engine_fetch_data():
                 raise ValueError("Exhausted")
             return np.ones((4, n))
             
-    replay2 = ReplayEngine(twin, engine, provider=ExhaustProvider(), loop_dataset=True)
+    replay2 = ReplayEngine(state_store, engine, provider=ExhaustProvider(), loop_dataset=True)
     replay2.dataset_sample_position = 10
     data2 = replay2._fetch_data(10, 4)
     assert data2 is not None
@@ -78,8 +87,10 @@ def test_replay_engine_fetch_data():
 
 def test_replay_engine_speed():
     twin = DigitalTwin(num_channels=4)
+    event_bus = EventBus()
+    state_store = StateStore(event_bus)
     engine = SignalAttackEngine(twin)
-    replay = ReplayEngine(twin, engine)
+    replay = ReplayEngine(state_store, engine)
     
     replay.set_speed(2.0)
     assert replay.speed == 2.0

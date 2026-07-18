@@ -31,6 +31,7 @@ class ReplayEngine:
                  loop_dataset: bool = True):
         self.state_store = state_store
         self.attack_engine = attack_engine
+        self.twin = getattr(attack_engine, "twin", None)
         self.provider = provider
 
         self.last_anomaly_score = 0.0
