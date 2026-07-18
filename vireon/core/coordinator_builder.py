@@ -64,7 +64,12 @@ class SimulationBuilder:
                     self.c.twin.update_therapy(True)
                     self.c.twin.update_stimulation_params(amp, freq)
                 else:
-                    pass # from vireon.plugins.clinical.closed_loop import UncontrolledStimulationAttack
+                    try:
+                        import importlib
+            _mod = importlib.import_module('vireon_lab.providers.clinical.closed_loop')
+            UncontrolledStimulationAttack = getattr(_mod, 'UncontrolledStimulationAttack')
+                    except ImportError:
+                        UncontrolledStimulationAttack = None
                     leak = UncontrolledStimulationAttack(self.c.twin)
                     leak.apply()
             else:
@@ -99,7 +104,12 @@ class SimulationBuilder:
 
         if self.config.emulation.hardware_loopback:
             print("[VIREON] Configuring Hardware-in-the-loop (HIL) Socket Bridge...")
-            pass # from vireon.plugins.devices.hardware_bridge import HardwareBridge
+            try:
+                import importlib
+            _mod = importlib.import_module('vireon_lab.providers.hardware.devices.hardware_bridge')
+            HardwareBridge = getattr(_mod, 'HardwareBridge')
+            except ImportError:
+                HardwareBridge = None
             self.c.bridge = HardwareBridge(host="127.0.0.1", port=9090)
             self.c.bridge.start()
             dataset_reader = self.c.bridge
@@ -107,10 +117,20 @@ class SimulationBuilder:
             path = self.config.dataset.path
             ext = os.path.splitext(path)[1].lower()
             if ext in [".edf", ".bdf"]:
-                pass # from vireon.plugins.datasets.edf_reader import EDFReader
+                try:
+                    import importlib
+            _mod = importlib.import_module('vireon_lab.providers.datasets.edf_reader')
+            EDFReader = getattr(_mod, 'EDFReader')
+                except ImportError:
+                    EDFReader = None
                 dataset_reader = EDFReader(path)
             elif ext == ".csv":
-                pass # from vireon.plugins.datasets.csv_reader import CSVReader
+                try:
+                    import importlib
+            _mod = importlib.import_module('vireon_lab.providers.datasets.csv_reader')
+            CSVReader = getattr(_mod, 'CSVReader')
+                except ImportError:
+                    CSVReader = None
                 dataset_reader = CSVReader(path)
             else:
                 print(f"[VIREON] Unsupported dataset extension: {ext}. Using synthetic stream.")
@@ -131,7 +151,12 @@ class SimulationBuilder:
     def setup_web_server(self):
         """Start the Web UI dashboard."""
         import secrets
-        pass # from vireon.plugins.reports.web_server import start_web_server
+        try:
+            import importlib
+            _mod = importlib.import_module('vireon_lab.reports.web_server')
+            start_web_server = getattr(_mod, 'start_web_server')
+        except ImportError:
+            start_web_server = None
         
         self.c.admin_token = secrets.token_urlsafe(16)
         self.c.view_token = secrets.token_urlsafe(16)
@@ -149,7 +174,12 @@ class SimulationBuilder:
         self.c.web_server.simulation_context["secure_mode"] = self.config.security.enabled
         self.c.web_server.simulation_context["hardware_mode"] = self.config.emulation.hardware_loopback
         
-        pass # from vireon.plugins.reports.ws_server import NeuroWebSocketServer
+        try:
+            import importlib
+            _mod = importlib.import_module('vireon_lab.reports.ws_server')
+            NeuroWebSocketServer = getattr(_mod, 'NeuroWebSocketServer')
+        except ImportError:
+            NeuroWebSocketServer = None
         self.c.ws_server = NeuroWebSocketServer(port=self.config.web.port + 1, admin_token=self.c.admin_token, view_token=self.c.view_token)
         self.c.ws_server.start()
 
@@ -157,8 +187,21 @@ class SimulationBuilder:
 
     def setup_ble(self):
         """Initialize BLE emulation stack."""
-        pass # from vireon.plugins.ble.emulator import VirtualBLEServer, VirtualBLELink, VirtualBLEClient
-        pass # from vireon.plugins.ble.attacks import PairingFailureAttack, MTUAbuseAttack
+        try:
+            import importlib
+            _mod = importlib.import_module('vireon_lab.providers.protocols.ble.emulator')
+            VirtualBLEServer = getattr(_mod, 'VirtualBLEServer')
+            VirtualBLELink = getattr(_mod, 'VirtualBLELink')
+            VirtualBLEClient = getattr(_mod, 'VirtualBLEClient')
+        except ImportError:
+            VirtualBLEServer = VirtualBLELink = VirtualBLEClient = None
+        try:
+            import importlib
+            _mod = importlib.import_module('vireon_lab.providers.protocols.ble.attacks')
+            PairingFailureAttack = getattr(_mod, 'PairingFailureAttack')
+            MTUAbuseAttack = getattr(_mod, 'MTUAbuseAttack')
+        except ImportError:
+            PairingFailureAttack = MTUAbuseAttack = None
 
         print("[VIREON] Initializing Virtual BLE Stack...")
         self.c.ble_server = VirtualBLEServer()

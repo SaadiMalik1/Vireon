@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from vireon.core.interfaces import ITwin
-from vireon.core.attack import SignalAttackEngine
 import time
 import threading
 import numpy as np
@@ -192,7 +190,6 @@ class ReplayEngine:
                 self.state_store["sim_clock"] = self._sim_clock
 
             # Publish tick event for providers to hook into (replaces hardcoded physics/dynamics)
-            from vireon.core.event_bus import Event
             
             accumulated_samples += sr * actual_dt
             num_samples_per_chunk = int(accumulated_samples)

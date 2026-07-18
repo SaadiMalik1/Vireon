@@ -14,7 +14,6 @@
 
 import time
 import sys
-import threading
 import logging
 from typing import Optional
 
@@ -126,7 +125,12 @@ class Orchestrator:
             loop_dataset=self.config.dataset.loop
         )
 
-        pass # from vireon.plugins.clinical.closed_loop import ClosedLoopSimulator
+        try:
+            import importlib
+            _mod = importlib.import_module('vireon_lab.providers.clinical.closed_loop')
+            ClosedLoopSimulator = getattr(_mod, 'ClosedLoopSimulator')
+        except ImportError:
+            ClosedLoopSimulator = None
         self.clinical_sim = ClosedLoopSimulator(self.twin)
         
         from vireon.core.coordinator_callbacks import CoordinatorCallbacks

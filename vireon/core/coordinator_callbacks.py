@@ -129,7 +129,13 @@ class CoordinatorCallbacks:
 
             payload = data_to_process.tobytes()
 
-            pass # from vireon.plugins.ble.attacks import GATTCorruptionAttack, MalformedNotificationAttack
+            try:
+                import importlib
+            _mod = importlib.import_module('vireon_lab.providers.protocols.ble.attacks')
+            GATTCorruptionAttack = getattr(_mod, 'GATTCorruptionAttack')
+            MalformedNotificationAttack = getattr(_mod, 'MalformedNotificationAttack')
+            except ImportError:
+                GATTCorruptionAttack = MalformedNotificationAttack = None
             if self.c.config.emulation.ble_attack == "gatt_corrupt":
                 payload = GATTCorruptionAttack(corruption_probability=1.0).apply(payload)
             elif self.c.config.emulation.ble_attack == "malformed_notify":

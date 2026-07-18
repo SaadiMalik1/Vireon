@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import threading
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 from vireon.sdk.events import IEventBus, Event
 from vireon.sdk.state import IStateStore
 

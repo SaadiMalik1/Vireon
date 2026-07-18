@@ -12,10 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 import ast
 from pathlib import Path
-import pytest
 
 def get_imports(file_path: Path):
     with open(file_path, "r", encoding="utf-8") as f:

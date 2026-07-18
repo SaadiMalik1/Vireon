@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from abc import ABC, abstractmethod
-from typing import Any
 from vireon.sdk.manifest import CapabilityManifest
 from vireon.sdk.events import IEventBus
 from vireon.sdk.state import IStateStore

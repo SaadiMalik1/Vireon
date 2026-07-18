@@ -1,3 +1,4 @@
+from vireon.core.detection import SecurityEngine
 # Copyright 2026 VIREON Contributors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");

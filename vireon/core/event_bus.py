@@ -32,7 +32,8 @@ import uuid
 import concurrent.futures
 from collections import deque
 from typing import Callable, Dict, List, Any, Optional
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from vireon.sdk.events import Event, IEventBus
 
 
 
@@ -44,7 +45,7 @@ class _Subscription:
     priority: int  # Lower = fires first
 
 
-from vireon.sdk.events import Event, IEventBus
+
 
 class EventBus(IEventBus):
     """
