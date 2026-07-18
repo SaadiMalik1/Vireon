@@ -62,7 +62,9 @@ class E2EEChannel:
             format=serialization.PublicFormat.SubjectPublicKeyInfo
         )
         
-        self.session_key = CryptoEmulator.ecdh_key_exchange(client_priv_bytes, server_pub_bytes)
+        import os
+        salt = os.urandom(32)
+        self.session_key = CryptoEmulator.ecdh_key_exchange(client_priv_bytes, server_pub_bytes, salt=salt)
         self.key_established_time = time.time()
         self.packets_since_rotation = 0
         return True

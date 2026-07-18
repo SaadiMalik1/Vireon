@@ -28,13 +28,13 @@ class CapabilityEngine:
         Validates whether the requested capabilities are allowed by the current
         ExperimentConfig.
         """
-        # In the future, read self.config.security.policy
-        # For now, we allow all if security is disabled, else we apply simple checks.
-        
-        # Example check: if strict_offline is required, block network
-        # if manifest.requires_host_access and self.config.security.strict_offline:
-        #    return False
-        
+        if not self.config.security.enabled:
+            return True
+
+        if self.config.security.enable_zta:
+            if manifest.requires_host_access:
+                return False
+
         return True
 
 class EventBusProxy:

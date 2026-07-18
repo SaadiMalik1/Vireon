@@ -45,7 +45,9 @@ if os.path.exists(SECRET_FILE):
 else:
     os.makedirs(os.path.dirname(SECRET_FILE), exist_ok=True)
     SERVER_SECRET = secrets.token_bytes(32)
-    with open(SECRET_FILE, "wb") as f_out:
+    # Securely create file with 0o600 permissions
+    fd = os.open(SECRET_FILE, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "wb") as f_out:
         f_out.write(SERVER_SECRET)
 
 def _verify_capability(session_token: str, required_capability: str) -> bool:
@@ -90,7 +92,7 @@ def mock_authenticate_session(biomarker_hash: str, role: str = "patient", auth_s
         if not expected_sig:
             return json.dumps({"error": "Role Escalation Denied: Server misconfiguration (CLINICIAN_PUB_KEY missing)."})
             
-        if not auth_signature or auth_signature != expected_sig:
+        if not auth_signature or not hmac.compare_digest(auth_signature.encode(), expected_sig.encode()):
             return json.dumps({"error": "Role Escalation Denied: Invalid or missing cryptographic signature for clinician."})
 
     # Map roles to Neuroright-based capabilities

@@ -71,12 +71,13 @@ class CryptoEmulator:
             raise CertificateError(f"Invalid X.509 Certificate: {e}")
         
     @staticmethod
-    def ecdh_key_exchange(private_key_a: bytes, public_key_b: bytes) -> bytes:
+    def ecdh_key_exchange(private_key_a: bytes, public_key_b: bytes, salt: bytes = None) -> bytes:
         """Elliptic Curve Diffie-Hellman key agreement using X25519 and HKDF."""
         from cryptography.hazmat.primitives.asymmetric import x25519
         from cryptography.hazmat.primitives import hashes
         from cryptography.hazmat.primitives.kdf.hkdf import HKDF
         from cryptography.hazmat.primitives.serialization import load_pem_private_key, load_pem_public_key
+        import os
         try:
             priv = load_pem_private_key(private_key_a, password=None)
             pub = load_pem_public_key(public_key_b)
@@ -86,10 +87,13 @@ class CryptoEmulator:
                 
             shared_secret = priv.exchange(pub)
             
+            if salt is None:
+                salt = os.urandom(32)
+            
             derived_key = HKDF(
                 algorithm=hashes.SHA256(),
                 length=32,
-                salt=b'vireon-fixed-salt-or-exchange',
+                salt=salt,
                 info=b'vireon handshake data',
             ).derive(shared_secret)
             return derived_key
