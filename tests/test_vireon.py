@@ -15,16 +15,16 @@
 import unittest
 import numpy as np
 import time
-from vireon.core.twin import DigitalTwin
-from vireon.core.attack import (
+from vireon.runtime.twin import DigitalTwin
+from vireon.runtime.attack import (
     SignalAttackEngine,
     NoiseInjectionAttack,
     SignalDriftAttack,
     ImpedanceSpikeAttack,
     SignalSuppressionAttack
 )
-from vireon.core.engine import ReplayEngine
-from vireon.core.utils import calculate_rms
+from vireon.runtime.engine import ReplayEngine
+from vireon.runtime.utils import calculate_rms
 
 class TestDigitalTwin(unittest.TestCase):
     def setUp(self):

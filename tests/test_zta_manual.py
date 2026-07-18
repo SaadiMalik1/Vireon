@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import sys
-from vireon.core.zta import ZTAPolicyEngine, TrustContext, AuthorizationDecision
+from vireon.runtime.zta import ZTAPolicyEngine, TrustContext, AuthorizationDecision
 
 def test_zta_allow():
     engine = ZTAPolicyEngine(thresholds={"ota_update": 0.9, "telemetry_read": 0.5})

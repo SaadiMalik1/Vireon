@@ -14,11 +14,11 @@
 
 import numpy as np
 import time
-from vireon.core.twin import DigitalTwin
-from vireon.core.attack import SignalAttackEngine
-from vireon.core.engine import ReplayEngine
-from vireon.core.state_store import StateStore
-from vireon.core.event_bus import EventBus
+from vireon.runtime.twin import DigitalTwin
+from vireon.runtime.attack import SignalAttackEngine
+from vireon.runtime.engine import ReplayEngine
+from vireon.runtime.state_store import StateStore
+from vireon.runtime.event_bus import EventBus
 
 class MockProvider:
     def __init__(self):

@@ -15,7 +15,7 @@
 import threading
 import time
 
-from vireon.core.physics import PhysicsEngine
+from vireon.runtime.physics import PhysicsEngine
 
 def test_twin_concurrent_mutation(mock_twin):
     """

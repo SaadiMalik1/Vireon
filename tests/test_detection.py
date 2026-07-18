@@ -13,8 +13,8 @@
 # limitations under the License.
 
 import numpy as np
-from vireon.core.twin import DigitalTwin
-from vireon.core.detection import (
+from vireon.runtime.twin import DigitalTwin
+from vireon.runtime.detection import (
     calculate_spectral_features,
     LinearAutoencoderIDS,
     SecurityEngine,
@@ -110,7 +110,7 @@ def test_spectral_spoofing():
     assert "SPECTRAL_SPOOFING_ANOMALY" in anomalies
 
 if TORCH_AVAILABLE:
-    from vireon.core.detection import DeepAutoencoderIDS
+    from vireon.runtime.detection import DeepAutoencoderIDS
     
     def test_deep_autoencoder_ids():
         ids = DeepAutoencoderIDS(input_dim=8)

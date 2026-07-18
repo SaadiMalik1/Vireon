@@ -26,8 +26,8 @@ import base64
 import os
 import secrets
 
-from vireon.core.coordinator import Coordinator
-from vireon.core.plugin_registry import PluginRegistry, register_builtin_plugins
+from vireon.runtime.coordinator import Coordinator
+from vireon.runtime.plugin_registry import PluginRegistry, register_builtin_plugins
 
 # Create the MCP server instance
 mcp = FastMCP("VIREON-Neural-Terminal")
@@ -204,7 +204,7 @@ def run_simulation(
     }
 
     # Initialize coordinator with the raw config
-    from vireon.core.config import ExperimentConfig
+    from vireon.runtime.config import ExperimentConfig
     config = ExperimentConfig.model_validate(raw_config)
     coordinator = Coordinator(config)
     coordinator.setup()

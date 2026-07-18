@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from vireon.core.protocol import RFFrameProcessor, ProtocolError, CryptoEmulator, CertificateError
+from vireon.runtime.protocol import RFFrameProcessor, ProtocolError, CryptoEmulator, CertificateError
 
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import hashes
@@ -66,8 +66,9 @@ def generate_ec_keys():
 def test_ecdh_key_exchange():
     priv_a, pub_a = generate_ec_keys()
     priv_b, pub_b = generate_ec_keys()
-    shared_secret_1 = CryptoEmulator.ecdh_key_exchange(priv_a, pub_b)
-    shared_secret_2 = CryptoEmulator.ecdh_key_exchange(priv_b, pub_a)
+    salt = b"test_salt_123"
+    shared_secret_1 = CryptoEmulator.ecdh_key_exchange(priv_a, pub_b, salt=salt)
+    shared_secret_2 = CryptoEmulator.ecdh_key_exchange(priv_b, pub_a, salt=salt)
     assert shared_secret_1 == shared_secret_2
 
 def test_aes_gcm_emulation():

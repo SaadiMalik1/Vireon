@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import unittest
-from vireon.core.twin import DigitalTwin
+from vireon.runtime.twin import DigitalTwin
 
 class TestCyberPhysicalRealism(unittest.TestCase):
     def test_simulation_mode_warning(self):

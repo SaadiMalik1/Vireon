@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import json
-from vireon.core.fuzzer import ProtocolFuzzer, BrainFlowFuzzer, print_fuzz_report, save_fuzz_report
+from vireon.runtime.fuzzer import ProtocolFuzzer, BrainFlowFuzzer, print_fuzz_report, save_fuzz_report
 
 def test_protocol_fuzzer_campaign():
     fuzzer = ProtocolFuzzer(seed=42)

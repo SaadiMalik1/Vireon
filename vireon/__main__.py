@@ -26,7 +26,7 @@ import sys
 import os
 import click
 import subprocess
-from vireon.core.validation import ValidationRunner
+from vireon.runtime.validation import ValidationRunner
 
 # Ensure the project root is in Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -48,8 +48,8 @@ def cli():
 @click.option('--seed', type=int, default=None, help='Random seed for deterministic reproducibility')
 def run(config_file, duration, board, serial_port, dataset, attack, seed):
     """Run a headless simulation experiment."""
-    from vireon.core.config import load_config, ExperimentConfig
-    from vireon.core.orchestrator import Orchestrator
+    from vireon.runtime.config import load_config, ExperimentConfig
+    from vireon.runtime.orchestrator import Orchestrator
 
     if config_file and os.path.exists(config_file):
         click.echo(f"[VIREON] Loading experiment config: {config_file}")
@@ -124,7 +124,7 @@ def compile(source_file, output):
 @cli.command()
 def info():
     """Display platform information and registered plugins."""
-    from vireon.core.plugin_registry import PluginRegistry, register_builtin_plugins
+    from vireon.runtime.plugin_registry import PluginRegistry, register_builtin_plugins
 
     click.echo("=" * 60)
     click.echo(" VIREON — Virtual Neurosecurity Laboratory")
@@ -150,7 +150,7 @@ def info():
 @click.option('--output', '-o', type=click.Path(), default='sbom.json', help='Output file path')
 def sbom(output):
     """Generate a CycloneDX 1.5 Software Bill of Materials (FDA 524B)."""
-    from vireon.core.sbom import generate_sbom, save_sbom, print_sbom_summary
+    from vireon.runtime.sbom import generate_sbom, save_sbom, print_sbom_summary
 
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     bom = generate_sbom(project_root)
@@ -163,7 +163,7 @@ def sbom(output):
 @click.option('--output', '-o', type=click.Path(), default='compliance_report.json', help='Output file path')
 def compliance_report(output):
     """Generate an FDA 524B compliance report with gap analysis."""
-    from vireon.core.compliance import generate_compliance_report, save_compliance_report, print_compliance_report
+    from vireon.runtime.compliance import generate_compliance_report, save_compliance_report, print_compliance_report
 
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     report = generate_compliance_report(project_root)
@@ -174,7 +174,7 @@ def compliance_report(output):
 @cli.command('audit-spdf')
 def audit_spdf():
     """Audit the repository for FDA 524B Secure Product Development Framework (SPDF) compliance."""
-    from vireon.core.spdf_auditor import SPDFAuditor
+    from vireon.runtime.spdf_auditor import SPDFAuditor
     
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     auditor = SPDFAuditor(project_root)
@@ -205,7 +205,7 @@ def monitor():
 @click.option('--output', '-o', type=click.Path(), default=None, help='Save report to JSON file')
 def fuzz(iterations, secure, verbose, protocol, seed, output):
     """Run protocol fuzzer against telemetry parser."""
-    from vireon.core.fuzzer import ProtocolFuzzer, BrainFlowFuzzer, print_fuzz_report, save_fuzz_report
+    from vireon.runtime.fuzzer import ProtocolFuzzer, BrainFlowFuzzer, print_fuzz_report, save_fuzz_report
     
     click.echo(f"Starting fuzzing campaign ({iterations} iterations, protocol={protocol})...")
     if protocol == 'brainflow':
@@ -226,7 +226,7 @@ def fuzz(iterations, secure, verbose, protocol, seed, output):
 @click.option('--markdown', '-m', type=click.Path(), default=None, help='Save Markdown report to file')
 def stride(output, markdown):
     """Auto-generate a STRIDE threat model for the VIREON platform."""
-    from vireon.core.stride import generate_stride_model, print_stride_summary, save_stride_model, render_stride_markdown
+    from vireon.runtime.stride import generate_stride_model, print_stride_summary, save_stride_model, render_stride_markdown
 
     model = generate_stride_model()
     print_stride_summary(model)

@@ -14,7 +14,7 @@
 
 import pytest
 import time
-from vireon.core.e2ee import E2EEChannel
+from vireon.runtime.e2ee import E2EEChannel
 
 def test_e2ee_channel_establish_session():
     channel = E2EEChannel()
