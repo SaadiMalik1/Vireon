@@ -248,162 +248,11 @@ def register_builtin_plugins(registry: PluginRegistry) -> None:
     except Exception as e:
         logger.warning(f"[PluginRegistry] Entry point discovery failed: {e}")
 
-    # 2. Fallback to manual registration
-
     _original_register = registry.register
     def _safe_register(info):
         if info.plugin_class is not None:
             _original_register(info)
-    registry.register = _safe_register
-    
-
-    try:
-        from vireon_lab.providers.datasets.edf_reader import EDFReader
-    except ImportError: EDFReader = None
-    try:
-        from vireon_lab.providers.datasets.mock_reader import MockEEGReader
-    except ImportError: MockEEGReader = None
-    try:
-        from vireon_lab.providers.datasets.csv_reader import CSVReader
-    except ImportError: CSVReader = None
-    try:
-        from vireon_lab.providers.datasets.fif_reader import FIFReader
-    except ImportError: FIFReader = None
-    try:
-        from vireon_lab.providers.datasets.mne_reader import MNEReader
-    except ImportError: MNEReader = None
-    try:
-        from vireon_lab.providers.datasets.eeg_sample_reader import EEGSampleReader
-    except ImportError: EEGSampleReader = None
-
-    try:
-        from vireon_lab.providers.devices.synthetic import SyntheticBoardWrapper
-    except ImportError: SyntheticBoardWrapper = None
-    try:
-        from vireon_lab.providers.devices.pieeg import PiEEGBoardWrapper
-    except ImportError: PiEEGBoardWrapper = None
-    try:
-        from vireon_lab.providers.devices.openbci_board import OpenBCICytonWrapper, OpenBCIGanglionWrapper
-    except ImportError: OpenBCICytonWrapper = None; OpenBCIGanglionWrapper = None
-    try:
-        from vireon_lab.providers.devices.lsl_bridge import LSLDeviceWrapper
-    except ImportError: LSLDeviceWrapper = None
-    try:
-        from vireon_lab.providers.devices.muse_emulator import MuseEmulator
-    except ImportError: MuseEmulator = None
-    try:
-        from vireon_lab.providers.devices.emotiv_emulator import EmotivEpocEmulator
-    except ImportError: EmotivEpocEmulator = None
-
-    try:
-        from vireon_lab.providers.clinical.closed_loop import ClosedLoopSimulator
-    except ImportError: ClosedLoopSimulator = None
-    try:
-        from vireon_lab.providers.clinical.dbs_emulator import ClosedLoopDBSController
-    except ImportError: ClosedLoopDBSController = None
-
-
-    registry.register(PluginInfo(
-        name="edf_reader",
-        category="datasets",
-        description="European Data Format (EDF/BDF) file reader",
-        plugin_class=EDFReader,
-        version="1.0.0"
-    ))
-    registry.register(PluginInfo(
-        name="csv_reader",
-        category="datasets",
-        description="CSV EEG data reader",
-        plugin_class=CSVReader,
-        version="1.0.0"
-    ))
-    registry.register(PluginInfo(
-        name="fif_reader",
-        category="datasets",
-        description="MNE Functional Imaging File (.fif) reader",
-        plugin_class=FIFReader,
-        version="1.0.0"
-    ))
-    
-    registry.register(PluginInfo(
-        name="mne_reader",
-        category="datasets",
-        description="MNE Universal Reader (vhdr, set, edf, bdf, fif)",
-        plugin_class=MNEReader,
-        version="1.0.0"
-    ))
-    
-    registry.register(PluginInfo(
-        name="mock_eeg",
-        category="datasets",
-        description="Synthetic multi-band EEG signal generator (alpha/beta/gamma/delta)",
-        plugin_class=MockEEGReader,
-        version="1.0.0"
-    ))
-    
-    registry.register(PluginInfo(
-        name="eeg_sample",
-        category="datasets",
-        description="Reads dataset metadata from datalake eeg-samples.json",
-        plugin_class=EEGSampleReader,
-        version="1.0.0"
-    ))
-
-    # --- Device Wrappers ---
-
-    registry.register(PluginInfo(
-        name="synthetic",
-        category="devices",
-        description="BrainFlow Synthetic Board (or mock fallback)",
-        plugin_class=SyntheticBoardWrapper,
-        version="1.0.0"
-    ))
-    registry.register(PluginInfo(
-        name="pieeg",
-        category="devices",
-        description="PiEEG Raspberry Pi SPI Board (or mock fallback)",
-        plugin_class=PiEEGBoardWrapper,
-        version="1.0.0"
-    ))
-    
-    registry.register(PluginInfo(
-        name="cyton",
-        category="devices",
-        description="Physical OpenBCI Cyton Board (via BrainFlow)",
-        plugin_class=OpenBCICytonWrapper,
-        version="1.0.0"
-    ))
-    registry.register(PluginInfo(
-        name="ganglion",
-        category="devices",
-        description="Physical OpenBCI Ganglion Board (via BrainFlow)",
-        plugin_class=OpenBCIGanglionWrapper,
-        version="1.0.0"
-    ))
-    
-    registry.register(PluginInfo(
-        name="lsl",
-        category="devices",
-        description="Lab Streaming Layer (LSL) Inlet Wrapper",
-        plugin_class=LSLDeviceWrapper,
-        version="1.0.0"
-    ))
-    
-    registry.register(PluginInfo(
-        name="muse",
-        category="devices",
-        description="Muse Headset Emulator (4-channel)",
-        plugin_class=MuseEmulator,
-        version="1.0.0"
-    ))
-    
-    registry.register(PluginInfo(
-        name="emotiv",
-        category="devices",
-        description="Emotiv Epoc+ Headset Emulator (14-channel)",
-        plugin_class=EmotivEpocEmulator,
-        version="1.0.0"
-    ))
+    registry.register = _safe_register    
 
     # --- Attack Modifiers ---
     from vireon.core.attack import (
@@ -440,72 +289,8 @@ def register_builtin_plugins(registry: PluginRegistry) -> None:
         version="1.0.0"
     ))
 
-    try:
-        from vireon_lab.scenarios.adversarial_ml import (
-            FGSMAttack, PGDAttack, CWAttack, BackdoorTriggerInjector
-        )
-    except ImportError:
-        FGSMAttack = PGDAttack = CWAttack = BackdoorTriggerInjector = None
-
-        registry.register(PluginInfo(
-            name="fgsm",
-            category="attacks",
-            description="Fast Gradient Sign Method adversarial noise",
-            plugin_class=FGSMAttack,
-            version="1.0.0"
-        ))
-        registry.register(PluginInfo(
-            name="pgd",
-            category="attacks",
-            description="Projected Gradient Descent adversarial attack",
-            plugin_class=PGDAttack,
-            version="1.0.0"
-        ))
-        registry.register(PluginInfo(
-            name="cw",
-            category="attacks",
-            description="Carlini & Wagner targeted frequency injection",
-            plugin_class=CWAttack,
-            version="1.0.0"
-        ))
-        registry.register(PluginInfo(
-            name="backdoor",
-            category="attacks",
-            description="Training-time data poisoning trigger injection",
-            plugin_class=BackdoorTriggerInjector,
-            version="1.0.0"
-        ))
-    except ImportError as e:
-        print(f"[PluginRegistry] Skipping adversarial_ml attacks: {e}")
-
     # --- Clinical ---
 
-    registry.register(PluginInfo(
-        name="closed_loop",
-        category="clinical",
-        description="Closed-loop clinical simulation evaluator",
-        plugin_class=ClosedLoopSimulator,
-        version="1.0.0"
-    ))
-    registry.register(PluginInfo(
-        name="dbs_controller",
-        category="clinical",
-        description="Closed-loop Deep Brain Stimulation controller",
-        plugin_class=ClosedLoopDBSController,
-        version="1.0.0"
-    ))
-
-    # --- Security & Privacy ---
-    from vireon.core.detection import SecurityEngine
-    try:
-        from vireon_lab.core_examples.clinical import NeuroIPS, BLELinkGuard
-    except ImportError:
-        NeuroIPS = None
-        BLELinkGuard = None
-    try:
-        from vireon_lab.providers.firmware.cortex_m_stub import FirmwareSecurityMonitor
-    except ImportError:
-        FirmwareSecurityMonitor = None
     from vireon.core.privacy_leakage import P300Analyzer
     from vireon.core.e2ee import E2EEChannel
     from vireon.core.authentication import BiometricGate
@@ -517,27 +302,6 @@ def register_builtin_plugins(registry: PluginRegistry) -> None:
         category="security",
         description="Intrusion Detection System for neural anomalies",
         plugin_class=SecurityEngine,
-        version="1.0.0"
-    ))
-    registry.register(PluginInfo(
-        name="ips",
-        category="security",
-        description="Intrusion Prevention System for neural anomalies",
-        plugin_class=NeuroIPS,
-        version="1.0.0"
-    ))
-    registry.register(PluginInfo(
-        name="ble_guard",
-        category="security",
-        description="Bluetooth Low Energy protocol monitor",
-        plugin_class=BLELinkGuard,
-        version="1.0.0"
-    ))
-    registry.register(PluginInfo(
-        name="fw_monitor",
-        category="security",
-        description="Firmware execution environment monitor",
-        plugin_class=FirmwareSecurityMonitor,
         version="1.0.0"
     ))
     registry.register(PluginInfo(

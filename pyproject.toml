@@ -2,8 +2,10 @@
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools]
-packages = ["vireon"]
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["vireon*"]
+exclude = ["tests*", "experiments*", "threat_models*", "knowledge*", "docs*", "dashboard*", "scripts*", "scenarios*"]
 
 [project]
 name = "vireon"

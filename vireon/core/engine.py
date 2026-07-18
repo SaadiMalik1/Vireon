@@ -170,7 +170,12 @@ class ReplayEngine:
             self._sim_clock += actual_dt
             
             # Update state store sim clock
-            self.state_store.set("sim_clock", self._sim_clock, source="engine")
+            if hasattr(self.state_store, "set"):
+                self.state_store.set("sim_clock", self._sim_clock, source="engine")
+            elif hasattr(self.state_store, "set_sim_clock"):
+                self.state_store.set_sim_clock(self._sim_clock)
+            elif isinstance(self.state_store, dict):
+                self.state_store["sim_clock"] = self._sim_clock
 
             # Publish tick event for providers to hook into (replaces hardcoded physics/dynamics)
             from vireon.core.event_bus import Event
