@@ -112,7 +112,7 @@ class Orchestrator:
             loop_dataset=self.config.dataset.loop
         )
 
-        from vireon.plugins.clinical.closed_loop import ClosedLoopSimulator
+        pass # from vireon.plugins.clinical.closed_loop import ClosedLoopSimulator
         self.clinical_sim = ClosedLoopSimulator(self.twin)
         
         from vireon.core.coordinator_callbacks import CoordinatorCallbacks

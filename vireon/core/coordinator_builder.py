@@ -50,7 +50,7 @@ class SimulationBuilder:
                     self.c.twin.update_therapy(True)
                     self.c.twin.update_stimulation_params(amp, freq)
                 else:
-                    from vireon.plugins.clinical.closed_loop import UncontrolledStimulationAttack
+                    pass # from vireon.plugins.clinical.closed_loop import UncontrolledStimulationAttack
                     leak = UncontrolledStimulationAttack(self.c.twin)
                     leak.apply()
             else:
@@ -85,7 +85,7 @@ class SimulationBuilder:
 
         if self.config.emulation.hardware_loopback:
             print("[VIREON] Configuring Hardware-in-the-loop (HIL) Socket Bridge...")
-            from vireon.plugins.devices.hardware_bridge import HardwareBridge
+            pass # from vireon.plugins.devices.hardware_bridge import HardwareBridge
             self.c.bridge = HardwareBridge(host="127.0.0.1", port=9090)
             self.c.bridge.start()
             dataset_reader = self.c.bridge
@@ -93,10 +93,10 @@ class SimulationBuilder:
             path = self.config.dataset.path
             ext = os.path.splitext(path)[1].lower()
             if ext in [".edf", ".bdf"]:
-                from vireon.plugins.datasets.edf_reader import EDFReader
+                pass # from vireon.plugins.datasets.edf_reader import EDFReader
                 dataset_reader = EDFReader(path)
             elif ext == ".csv":
-                from vireon.plugins.datasets.csv_reader import CSVReader
+                pass # from vireon.plugins.datasets.csv_reader import CSVReader
                 dataset_reader = CSVReader(path)
             else:
                 print(f"[VIREON] Unsupported dataset extension: {ext}. Using synthetic stream.")
@@ -117,7 +117,7 @@ class SimulationBuilder:
     def setup_web_server(self):
         """Start the Web UI dashboard."""
         import secrets
-        from vireon.plugins.reports.web_server import start_web_server
+        pass # from vireon.plugins.reports.web_server import start_web_server
         
         self.c.admin_token = secrets.token_urlsafe(16)
         self.c.view_token = secrets.token_urlsafe(16)
@@ -135,7 +135,7 @@ class SimulationBuilder:
         self.c.web_server.simulation_context["secure_mode"] = self.config.security.enabled
         self.c.web_server.simulation_context["hardware_mode"] = self.config.emulation.hardware_loopback
         
-        from vireon.plugins.reports.ws_server import NeuroWebSocketServer
+        pass # from vireon.plugins.reports.ws_server import NeuroWebSocketServer
         self.c.ws_server = NeuroWebSocketServer(port=self.config.web.port + 1, admin_token=self.c.admin_token, view_token=self.c.view_token)
         self.c.ws_server.start()
 
@@ -143,8 +143,8 @@ class SimulationBuilder:
 
     def setup_ble(self):
         """Initialize BLE emulation stack."""
-        from vireon.plugins.ble.emulator import VirtualBLEServer, VirtualBLELink, VirtualBLEClient
-        from vireon.plugins.ble.attacks import PairingFailureAttack, MTUAbuseAttack
+        pass # from vireon.plugins.ble.emulator import VirtualBLEServer, VirtualBLELink, VirtualBLEClient
+        pass # from vireon.plugins.ble.attacks import PairingFailureAttack, MTUAbuseAttack
 
         print("[VIREON] Initializing Virtual BLE Stack...")
         self.c.ble_server = VirtualBLEServer()

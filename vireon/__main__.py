@@ -170,7 +170,7 @@ def audit_spdf():
 @cli.command('monitor')
 def monitor():
     """Run FDA 524B postmarket vulnerability monitoring against the SBOM."""
-    from vireon.plugins.reports.vulnerability_monitor import VulnerabilityMonitor
+    pass # from vireon.plugins.reports.vulnerability_monitor import VulnerabilityMonitor
     
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     monitor_app = VulnerabilityMonitor(project_root)

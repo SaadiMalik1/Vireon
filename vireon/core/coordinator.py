@@ -18,7 +18,7 @@ from vireon.core.event_bus import EventBus, Event
 from vireon.core.config import ExperimentConfig
 from vireon.core.plugin_registry import PluginRegistry, register_builtin_plugins
 from vireon.core.utils import format_telemetry_table
-from vireon.plugins.clinical.closed_loop import ClosedLoopSimulator
+pass # from vireon.plugins.clinical.closed_loop import ClosedLoopSimulator
 
 logger = logging.getLogger(__name__)
 class Coordinator:
@@ -158,7 +158,7 @@ class Coordinator:
         self.clinical_sim = ClosedLoopSimulator(self.twin)
         if self.config.emulation.dbs_mode or self.config.web.enabled:
             print("[VIREON] Initializing Virtual DBS Controller...")
-            from vireon.plugins.clinical.dbs_emulator import ClosedLoopDBSController
+            pass # from vireon.plugins.clinical.dbs_emulator import ClosedLoopDBSController
             self.dbs_controller = ClosedLoopDBSController(self.twin)
 
         # 6. Security layer
@@ -181,11 +181,11 @@ class Coordinator:
             
         # 6.5 NSP Wrapper
         if self.config.security.nsp_enabled or self.config.web.enabled:
-            from vireon.plugins.devices.nsp_wrapper import NSPCryptographicWrapper
+            pass # from vireon.plugins.devices.nsp_wrapper import NSPCryptographicWrapper
             self.nsp_wrapper = NSPCryptographicWrapper(simulate_latency_ms=1.5)
 
         # 6.6 Firmware Emulation
-        from vireon.plugins.firmware.cortex_m_stub import CortexMStub
+        pass # from vireon.plugins.firmware.cortex_m_stub import CortexMStub
         self.emulator = CortexMStub()
         self.fw_monitor = self.registry.create("security", "fw_monitor", emulator=self.emulator)
 
@@ -229,7 +229,7 @@ class Coordinator:
 
         # 10. OpenBCI emulator
         if self.config.emulation.openbci:
-            from vireon.plugins.devices.openbci_emulator import OpenBCICytonEmulator
+            pass # from vireon.plugins.devices.openbci_emulator import OpenBCICytonEmulator
             self.emulator = OpenBCICytonEmulator(self.twin)
             self.emulator.start()
             self.engine.add_callback(self.emulator.send_eeg_data)
@@ -378,7 +378,7 @@ class Coordinator:
         summary["nsp_active"] = self.twin.nsp_mode
         summary["p300_leakage_events"] = self.total_p300_leakage_events
 
-        from vireon.plugins.reports.generator import ReportGenerator
+        pass # from vireon.plugins.reports.generator import ReportGenerator
                 
         generator = ReportGenerator(self.twin)
         timestamp = time.strftime("%Y%m%d_%H%M%S")

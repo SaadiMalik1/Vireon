@@ -150,7 +150,7 @@ class ValidationRunner:
         logger.info(f"  Loading {edf_path.name}...")
 
         try:
-            from vireon.plugins.datasets.edf_reader import EDFReader
+            pass # from vireon.plugins.datasets.edf_reader import EDFReader
             reader = EDFReader(str(edf_path), fallback_on_error=True)
             sample_rate = reader.sample_rate
             n_samples = reader.total_samples

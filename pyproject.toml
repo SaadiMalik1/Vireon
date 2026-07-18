@@ -2,6 +2,9 @@
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools]
+packages = ["vireon"]
+
 [project]
 name = "vireon"
 version = "1.0.0"
@@ -28,6 +31,7 @@ dependencies = [
     "click>=8.3.3",
     "websockets~=11.0",
     "pyyaml~=6.0.0",
+    "numpy>=1.24.0"
 ]
 
 [project.optional-dependencies]

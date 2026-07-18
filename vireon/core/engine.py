@@ -131,8 +131,8 @@ class ReplayEngine:
 
     def _loop(self, interval_sec: float):
         # Determine sample rate and channels from state store
-        sr = self.state_store.get("sample_rate", 250)
-        num_channels = self.state_store.get("num_channels", 8)
+        sr = self.state_store.get("sample_rate", 250) if isinstance(self.state_store, dict) else getattr(self.state_store, "sample_rate", 250)
+        num_channels = self.state_store.get("num_channels", 8) if isinstance(self.state_store, dict) else getattr(self.state_store, "num_channels", 8)
 
         # EEG channels indices (normally 0 to num_channels-1, or specified by device)
         if self.provider is not None:
