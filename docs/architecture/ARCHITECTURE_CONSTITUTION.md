@@ -1,4 +1,4 @@
-# VIREON Architectural Constitution
+# VIREON Architecture Constitution
 
 This document is the single source of truth for the project. Every future feature, module, plugin, interface, or subsystem must be justified against this document. 
 
@@ -68,7 +68,7 @@ VIREON fills the gap by providing the high-level runtime, orchestration, and val
 
 ## 9. Design Philosophy
 
-- **Runtime**: The runtime is a thin, language-agnostic orchestrator. It knows nothing about brains or hardware—it only knows how to load providers, negotiate capabilities, route messages, and enforce strict execution loops.
+- **Runtime**: The runtime is a thin, language-agnostic orchestrator. **The runtime contains no domain-specific neurophysiological, firmware, or device logic. It provides only orchestration, scheduling, capability enforcement, lifecycle management, and deterministic execution.**
 - **Providers**: The sole mechanism for extending the framework. Everything from logging to physics is a provider complying with a strict, versioned interface.
 - **Plugins**: Untrusted binary or script packages that fulfill a provider interface, executed in a sandboxed or IPC boundary.
 - **Validation**: Validation must be objective, deterministic, and based on artifacts emitted by the runtime, decoupled from the simulation itself.
@@ -96,6 +96,15 @@ Instead, it will dynamically load a `FirmwareProvider` (from Neuralink), a `Phys
 - New programming languages can be integrated through stable SDK interfaces.
 - The educational platform can evolve independently as a consumer of the framework.
 
+Ecosystem Success:
+
+- Third-party plugins exist.
+- Independent researchers publish using VIREON.
+- External contributors maintain providers.
+- Multiple programming languages are supported.
+- Independent organizations adopt the SDK.
+
+
 ## 13. Architectural Risks
 
 1. **Performance/Overhead (Technical)**: Strict isolation and IPC between plugins may introduce unacceptable latency for high-frequency physics/firmware emulation.
@@ -108,3 +117,105 @@ Instead, it will dynamically load a `FirmwareProvider` (from Neuralink), a `Phys
 *If every line of code disappeared tomorrow, what architectural ideas would still make VIREON worth rebuilding?*
 
 The concept of a secure, vendor-neutral, plugin-first orchestration engine that strictly isolates proprietary implementations while enabling objective, reproducible validation of neurotechnology.
+
+
+## 15. Architecture Invariants
+
+1. The runtime shall never contain device-specific logic.
+2. The runtime shall never contain clinical algorithms.
+3. Plugins shall never bypass capability validation.
+4. Every provider shall communicate only through public interfaces.
+5. The runtime shall never directly depend on educational components.
+6. The runtime shall remain vendor-neutral.
+7. All external integrations must pass through SDK interfaces.
+8. Simulation state shall never be mutated outside approved APIs.
+
+
+## 16. Quality Attributes
+
+Priority:
+1. Security
+2. Reproducibility
+3. Extensibility
+4. Interoperability
+5. Maintainability
+6. Performance
+7. Portability
+8. Usability
+
+
+## 17. Trade-offs
+
+We deliberately accept higher latency in exchange for plugin isolation.
+We deliberately accept additional abstraction in exchange for vendor neutrality.
+We deliberately accept higher engineering effort in exchange for language independence.
+
+
+## 18. Architectural Constraints
+
+- The runtime must never perform signal processing.
+- The runtime must never implement firmware logic.
+- The runtime must never contain protocol-specific code.
+- The runtime must never embed hardware assumptions.
+
+
+## 19. Evolution Policy
+
+Changing this constitution requires:
+RFC -> ADR -> Maintainer approval -> Migration strategy -> Version increment
+
+
+## 20. Failure Philosophy
+
+Fail Closed:
+Capability denied -> Plugin disabled -> Simulation continues
+
+(NOT: Capability denied -> Runtime crash)
+
+
+## 21. Compatibility Policy
+
+- Provider SDK uses Semantic Versioning.
+- API stability guarantees.
+- Defined deprecation windows.
+- Migration guarantees between major versions.
+
+
+## 22. Testing Philosophy
+
+Architecture is validated by:
+- Contract tests
+- Integration tests
+- Compatibility tests
+- Benchmark suites
+- Deterministic replay
+- Property testing
+
+
+## 23. Architecture Governance
+
+Architecture follows:
+- RFCs
+- ADRs
+- Evidence
+- Benchmarks
+- Scientific validation
+
+not personal preference.
+
+
+## 24. Architectural Decision Test
+
+Every new feature must answer:
+1. Does this increase vendor neutrality?
+2. Does this improve reproducibility?
+3. Does this belong in the runtime?
+4. Could this instead be a provider?
+5. Does this introduce hidden coupling?
+6. Can it be implemented externally?
+7. Does it preserve deterministic execution?
+8. Does it preserve language independence?
+9. Does it preserve plugin isolation?
+10. Is there benchmark evidence?
+
+If any answer is "No", the proposal requires an RFC.
