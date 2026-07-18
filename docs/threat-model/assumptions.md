@@ -36,4 +36,4 @@ VIREON adheres to established industry standards regarding scientific validity. 
 ## Platform & Cryptography Assumptions
 
 1. **Host Environment**: The simulation assumes execution in a trusted, POSIX-compliant environment with Python 3.10+ and Rust 1.85+.
-2. **Real Cryptography**: VIREON implements standard library cryptographic operations (e.g., ECDH, SHA256, AES-GCM) rather than mock operations. However, this platform is an educational and research testbed; its components must **not** be relied upon for securing real-world clinical devices or patient data.
+2. **Real Cryptography**: VIREON implements standard library cryptographic operations (e.g., ECDH, SHA256, AES-GCM) rather than mock operations. However, these implementations intentionally contain severe cryptographic hygiene flaws (e.g., zero-salt HKDF, missing AAD in AES-GCM, and hash-based "signatures") to facilitate educational Capture-The-Flag (CTF) scenarios and threat modeling. This platform is an educational and research testbed; its components must **not** be relied upon for securing real-world clinical devices or patient data.
