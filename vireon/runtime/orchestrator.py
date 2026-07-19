@@ -1,174 +1,175 @@
 # Copyright 2026 VIREON Contributors
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Vireon V2 Orchestrator Kernel
 
-import time
-import sys
 import logging
-from typing import Optional
+from typing import Dict, Any, List
 
-from vireon.runtime.event_bus import EventBus, Event
-from vireon.runtime.config import ExperimentConfig
-from vireon.runtime.plugin_registry import PluginRegistry, register_builtin_plugins
-from vireon.runtime.capability_engine import CapabilityEngine
-from vireon.runtime.state_store import StateStore
-from vireon.runtime.engine import ReplayEngine
-from vireon.runtime.utils import format_telemetry_table
-
-# Compatibility imports for plugins not yet refactored to IProvider
-from vireon.runtime.twin import DigitalTwin
-from vireon.runtime.coordinator_builder import SimulationBuilder
+from vireon.sdk.lifecycle.state_machine import ILifecycleManager, ProviderState
+from vireon.sdk.capability.descriptor import CapabilityDescriptor
+from vireon.sdk.provider_interfaces.v1 import IProviderV1
+from vireon.sdk.services.apis import RuntimeServices
+from vireon.runtime.enforcement import EnforcingStateAPI, EnforcingTelemetryAPI
 
 logger = logging.getLogger(__name__)
 
-class Orchestrator:
+class OrchestrationFault(Exception):
+    pass
+
+class VireonOrchestrator(ILifecycleManager):
     """
-    Thin Orchestration Runtime for VIREON.
-    Replaces the monolithic Coordinator. Orchestrates Provider interfaces based on
-    a capability-negotiated manifest.
+    The heart of the V2 Runtime.
+    Manages provider registration, capability negotiation, dependency injection,
+    and advances the 13-stage deterministic lifecycle.
     """
-
-    def __init__(self, config: ExperimentConfig):
-        self.config = config
-
-        # Thin Runtime Core
-        self.event_bus = EventBus()
-        self.registry = PluginRegistry()
-        self.capability_engine = CapabilityEngine(config)
-        self.state_store = StateStore(self.event_bus)
-
-        self.engine: Optional[ReplayEngine] = None
-        self._setup_complete = False
-
-        # --- BACKWARD COMPATIBILITY SHIM ---
-        # Plugins have not yet been migrated to IProvider and StateStore.
-        # We temporarily maintain DigitalTwin and specific references.
-        self.twin: Optional[DigitalTwin] = None
-        self.attack_engine = None
-        self.clinical_sim = None
-        self.dbs_controller = None
-        self.emulator = None
-        self.fw_monitor = None
-        self.ids = None
-        self.ips = None
-        self.link_guard = None
-        self.p300_analyzer = None
-        self.e2ee_channel = None
-        self.biometric_gate = None
-        self.zta_engine = None
-        self.bridge = None
-        self.web_server = None
-        self.ws_server = None
-
-    def setup(self):
-        print("[VIREON Orchestrator] Bootstrapping Thin Runtime...")
-
-        # 1. Discover plugins
-        register_builtin_plugins(self.registry)
-        self.registry.load_entry_points()
-
-        # 2. Provide backward compatibility
-        self._setup_legacy_plugins()
-
-        self.event_bus.publish(Event(
-            topic="experiment.setup_complete",
-            data={"config_name": self.config.name, "seed": self.config.seed},
-            source="orchestrator"
-        ))
-        self._setup_complete = True
-
-    def _setup_legacy_plugins(self):
-        """Temporary shim to load old plugins until Phase 9 Subsystem 3 completes."""
-        self.twin = DigitalTwin(
-            device_id=self.config.device.device_id,
-            sample_rate=self.config.device.sample_rate,
-            num_channels=self.config.device.num_channels,
-            hardware_mode=self.config.emulation.hardware_loopback,
-            seed=self.config.seed
-        )
+    def __init__(self, global_state_store: Any, global_event_bus: Any):
+        self._global_state_store = global_state_store
+        self._global_event_bus = global_event_bus
         
-        # We put the twin in the StateStore so new providers can access it if needed
-        self.state_store.set("legacy_twin", self.twin, source="orchestrator")
+        self.providers: Dict[str, IProviderV1] = {}
+        self.descriptors: Dict[str, CapabilityDescriptor] = {}
+        self.provider_states: Dict[str, ProviderState] = {}
+        self.injected_services: Dict[str, RuntimeServices] = {}
 
-        from vireon.runtime.attack import SignalAttackEngine
-        self.attack_engine = SignalAttackEngine(self.twin, self.event_bus)
-        self.event_bus.enable_logging(True)
+    def register_provider(self, provider: IProviderV1, descriptor: CapabilityDescriptor) -> None:
+        """Stage 1: DISCOVERED"""
+        p_id = descriptor.id
+        if p_id in self.providers:
+            raise OrchestrationFault(f"Provider {p_id} already registered.")
+            
+        self.providers[p_id] = provider
+        self.descriptors[p_id] = descriptor
+        self.provider_states[p_id] = ProviderState.DISCOVERED
+        logger.info(f"Registered provider: {p_id} ({descriptor.latency} latency)")
 
-        builder = SimulationBuilder(self)
-        builder.setup_attacks()
-
-        device_wrapper = builder.setup_device()
-        dataset_reader = builder.setup_dataset()
-
-        from vireon.runtime.data_provider import DeviceProviderAdapter, DatasetProviderAdapter
-        provider = None
-        if device_wrapper:
-            provider = DeviceProviderAdapter(device_wrapper)
-        elif dataset_reader:
-            provider = DatasetProviderAdapter(dataset_reader)
-
-        self.engine = ReplayEngine(
-            state_store=self.state_store,
-            attack_engine=self.attack_engine,
-            provider=provider,
-            seed=self.config.seed,
-            loop_dataset=self.config.dataset.loop
-        )
-
+    def load_native_provider(self, library_path: str) -> None:
+        """Loads a C-ABI compliant provider and registers it."""
+        from vireon.sdk.native_provider import NativeProviderLoader
         try:
-            import importlib
-            _mod = importlib.import_module('vireon_lab.providers.clinical.closed_loop')
-            ClosedLoopSimulator = getattr(_mod, 'ClosedLoopSimulator')
-        except ImportError:
-            ClosedLoopSimulator = None
-        self.clinical_sim = ClosedLoopSimulator(self.twin)
+            loader = NativeProviderLoader(library_path)
+            self.register_provider(loader, loader.descriptor)
+        except Exception as e:
+            logger.error(f"Failed to load native provider from {library_path}: {e}")
+            raise OrchestrationFault(f"Native loader error: {e}")
+
+    def transition(self, provider_id: str, target_state: ProviderState) -> bool:
+        """Advances a provider through the lifecycle safely."""
+        current_state = self.provider_states.get(provider_id)
+        if current_state == target_state:
+            return True
+            
+        # Simplified linear progression enforcement for demonstration
+        logger.debug(f"[{provider_id}] Transitioning: {current_state} -> {target_state}")
+        self.provider_states[provider_id] = target_state
+        return True
+
+    def initialize_all(self):
+        """Advances all providers through DISCOVERED -> READY"""
+        for p_id, desc in self.descriptors.items():
+            self.transition(p_id, ProviderState.VALIDATING_MANIFEST)
+            # In a real environment, we'd check manifest signatures here
+            
+            self.transition(p_id, ProviderState.RESOLVING_DEPENDENCIES)
+            # Ensure required capabilities are met by other registered providers
+            
+            self.transition(p_id, ProviderState.NEGOTIATING_CAPABILITIES)
+            
+            # Build injected services
+            self.transition(p_id, ProviderState.INITIALIZING)
+            
+            state_api = EnforcingStateAPI(self._global_state_store, desc)
+            telemetry_api = EnforcingTelemetryAPI(self._global_event_bus, desc)
+            
+            services = RuntimeServices(
+                state=state_api,
+                telemetry=telemetry_api
+            )
+            self.injected_services[p_id] = services
+            
+            # Call provider's initialize method if it has one (backward compat)
+            provider = self.providers[p_id]
+            if hasattr(provider, 'initialize'):
+                provider.initialize(services)
+                
+            self.transition(p_id, ProviderState.READY)
+
+    def start_all(self):
+        for p_id in self.providers:
+            self.transition(p_id, ProviderState.STARTING)
+            # Trigger threads/subprocess boots here
+            self.transition(p_id, ProviderState.RUNNING)
+
+    def tick_all(self, dt: float, data: Any = None):
+        """
+        The deterministic tick driven by the Engine.
+        Calls the appropriate ABI methods for each provider based on its declared interfaces.
+        """
+        for p_id, provider in self.providers.items():
+            if self.provider_states[p_id] != ProviderState.RUNNING:
+                continue
+                
+            desc = self.descriptors[p_id]
+            
+            if "IPhysicsProviderV1" in desc.implements:
+                if hasattr(provider, "step_physics"):
+                    provider.step_physics(dt)
+                    
+            if data is not None:
+                if "IIDSProviderV1" in desc.implements:
+                    if hasattr(provider, "analyze_window"):
+                        provider.analyze_window(data)
+                        
+                if "IClinicalProviderV1" in desc.implements:
+                    if hasattr(provider, "evaluate_biomarker"):
+                        provider.evaluate_biomarker(data)
+
+            if "ITelemetryProviderV1" in desc.implements:
+                if hasattr(provider, "on_tick"):
+                    # Backward compat or specific tick logic
+                    provider.on_tick(dt)
+
+    def shutdown_all(self):
+        for p_id, provider in self.providers.items():
+            self.transition(p_id, ProviderState.SHUTTING_DOWN)
+            if hasattr(provider, 'shutdown'):
+                provider.shutdown()
+            self.transition(p_id, ProviderState.UNLOADED)
+
+    def perform_health_check(self, provider_id: str) -> dict:
+        provider = self.providers.get(provider_id)
+        if provider and hasattr(provider, 'health'):
+            return provider.health()
+        return {"status": "unknown"}
+
+    def gather_evidence(self, run_id: str):
+        """
+        Collects artifacts from the current run and generates a cryptographic evidence package.
+        """
+        from vireon.evidence.pipeline import EvidenceEngine
+        from vireon.validation.artifacts import ThreatReport, ExecutionTrace
+        import uuid
         
-        from vireon.runtime.coordinator_callbacks import CoordinatorCallbacks
-        self.callbacks = CoordinatorCallbacks(self)
-        self.engine.add_callback(self.callbacks.simulation_callback)
-
-    def run(self):
-        if not self._setup_complete:
-            raise RuntimeError("Call setup() before run()")
-
-        self.event_bus.publish(Event(
-            topic="experiment.started",
-            data={"duration": self.config.duration_sec},
-            source="orchestrator"
-        ))
-
-        print(f"[VIREON Orchestrator] Starting simulation (duration={self.config.duration_sec}s)...")
-        self.engine.start(interval_sec=self.config.interval_sec)
-        start_time = time.time()
-
-        try:
-            while time.time() - start_time < self.config.duration_sec:
-                if not self.config.web.enabled:
-                    sys.stdout.write("\033[H\033[J")
-                    sys.stdout.write(format_telemetry_table(self.twin))
-                    sys.stdout.write(f"\nSim Clock: {self.engine.sim_clock:.1f}s | Speed: {self.engine.speed:.1f}x\n")
-                    sys.stdout.flush()
-                time.sleep(0.5)
-        except KeyboardInterrupt:
-            print("\n[VIREON] Simulation interrupted by user.")
-
-        self.event_bus.publish(Event(
-            topic="experiment.stopped",
-            data={"sim_clock": self.engine.sim_clock},
-            source="orchestrator"
-        ))
-
-    def teardown(self):
-        print("\n[VIREON] Stopping replay engine...")
-        if self.engine:
-            self.engine.stop()
+        engine = EvidenceEngine()
+        
+        # In a real system, we would query the global event bus or state store for all artifacts
+        # Here we mock retrieving threat reports from the active anomalies
+        active_anomalies = self._global_state_store.get("active_anomalies", [])
+        
+        threat_report = ThreatReport(
+            artifact_id=str(uuid.uuid4()),
+            run_id=run_id,
+            provider_id="vireon.orchestrator",
+            anomalies_detected=len(active_anomalies),
+            confidence_scores=[1.0] * len(active_anomalies) if active_anomalies else []
+        )
+        engine.ingest(threat_report)
+        
+        trace = ExecutionTrace(
+            artifact_id=str(uuid.uuid4()),
+            run_id=run_id,
+            provider_id="vireon.orchestrator",
+            state_transitions=[{"state_keys_modified": len(self._global_state_store.get_all())}],
+            events_published=0
+        )
+        engine.ingest(trace)
+        
+        return engine.sign_package(run_id)

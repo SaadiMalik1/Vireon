@@ -30,19 +30,24 @@ logger = logging.getLogger(__name__)
 
 
 
+from vireon.runtime.orchestrator import VireonOrchestrator
+
 class ReplayEngine:
     """
     Core simulation loop that drives data through the VIREON pipeline.
+    Now acts as the master clock for the V2 VireonOrchestrator.
     """
 
     def __init__(self,
                  state_store,
                  attack_engine,
-                 provider=None,
+                 orchestrator: Optional[VireonOrchestrator] = None,
+                 provider=None, # Legacy support
                  seed: Optional[int] = None,
                  loop_dataset: bool = True):
         self.state_store = state_store
         self.attack_engine = attack_engine
+        self.orchestrator = orchestrator
         self.provider = provider
 
         self.last_anomaly_score = 0.0
@@ -187,8 +192,6 @@ class ReplayEngine:
             elif isinstance(self.state_store, dict):
                 self.state_store["sim_clock"] = self._sim_clock
 
-            # Publish tick event for providers to hook into (replaces hardcoded physics/dynamics)
-            
             accumulated_samples += sr * actual_dt
             num_samples_per_chunk = int(accumulated_samples)
 
@@ -199,7 +202,7 @@ class ReplayEngine:
     
                 # Ensure raw_data shape is correct (channels, samples)
                 if raw_data is not None and len(raw_data.shape) == 2:
-                    self._dispatch_update(raw_data, eeg_channels, sr, pending_futures, MAX_PENDING_TASKS)
+                    self._dispatch_update(raw_data, eeg_channels, sr, actual_dt, pending_futures, MAX_PENDING_TASKS)
                 else:
                     print("[ReplayEngine] Received invalid shape or empty data.")
 
@@ -254,10 +257,13 @@ class ReplayEngine:
                     return None
         return np.full((num_channels, num_samples_per_chunk), np.nan)
 
-    def _dispatch_update(self, raw_data: np.ndarray, eeg_channels: List[int], sr: int, pending_futures: Optional[set] = None, max_pending: int = 20):
+    def _dispatch_update(self, raw_data: np.ndarray, eeg_channels: List[int], sr: int, actual_dt: float, pending_futures: Optional[set] = None, max_pending: int = 20):
         mutated_data = self.attack_engine.apply_attacks(raw_data, eeg_channels, sr, self.rng)
         with self._buffer_lock:
             self._current_buffer = mutated_data
+
+        if self.orchestrator:
+            self.orchestrator.tick_all(actual_dt, mutated_data)
 
         connected = self.state_store.get("connected", True) if hasattr(self.state_store, "get") else getattr(self.state_store, "connected", True)
         if connected:
