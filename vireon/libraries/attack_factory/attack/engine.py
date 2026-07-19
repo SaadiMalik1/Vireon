@@ -14,14 +14,14 @@
 
 import numpy as np
 from typing import List, Optional
-from vireon.runtime.twin import DigitalTwin
+from vireon.sdk.state import IStateStore
 from vireon.runtime.event_bus import EventBus, Event
 
 from .base import ISignalModifier
 
 class SignalAttackEngine:
-    def __init__(self, twin: DigitalTwin, event_bus: Optional[EventBus] = None):
-        self.twin = twin
+    def __init__(self, state_store, event_bus: Optional[EventBus] = None):
+        self.state_store = state_store
         self.event_bus = event_bus
         self.modifiers: List[ISignalModifier] = []
         import threading
@@ -43,13 +43,14 @@ class SignalAttackEngine:
             elif hasattr(modifier, "attenuation_factor"):
                 params["attenuation_factor"] = modifier.attenuation_factor
 
+            sim_clock = self.state_store.get("sim_clock", 0.0) if hasattr(self.state_store, "get") else getattr(self.state_store, "sim_clock", 0.0)
             self.event_bus.publish(Event(
                 topic="attack.modifier_added",
                 data={
                     "type": modifier.__class__.__name__,
                     "target_channels": getattr(modifier, "target_channels", []),
                     "params": params,
-                    "sim_clock": self.twin.get_sim_clock()
+                    "sim_clock": sim_clock
                 },
                 source="attack_engine"
             ))
@@ -62,14 +63,15 @@ class SignalAttackEngine:
                 removed = True
 
         if removed:
-            modifier.revert(self.twin)
+            modifier.revert(self.state_store)
 
         if removed and self.event_bus:
+            sim_clock = self.state_store.get("sim_clock", 0.0) if hasattr(self.state_store, "get") else getattr(self.state_store, "sim_clock", 0.0)
             self.event_bus.publish(Event(
                 topic="attack.modifier_removed",
                 data={
                     "type": modifier.__class__.__name__,
-                    "sim_clock": self.twin.get_sim_clock()
+                    "sim_clock": sim_clock
                 },
                 source="attack_engine"
             ))
@@ -80,17 +82,19 @@ class SignalAttackEngine:
             active_mods = list(self.modifiers)
 
         # Reset twin-level properties that might have been left over
-        setattr(self.twin, "rf_packet_drop_rate", 0.0)
+        if hasattr(self.state_store, "set"):
+            self.state_store.set("rf_packet_drop_rate", 0.0, source="attack_engine")
 
         for modifier in active_mods:
-            processed_data = modifier.apply(processed_data, eeg_channels, sample_rate, self.twin, rng)
+            processed_data = modifier.apply(processed_data, eeg_channels, sample_rate, self.state_store, rng)
 
         if active_mods and self.event_bus:
+            sim_clock = self.state_store.get("sim_clock", 0.0) if hasattr(self.state_store, "get") else getattr(self.state_store, "sim_clock", 0.0)
             self.event_bus.publish(Event(
                 topic="attack.applied",
                 data={
                     "active_modifiers_count": len(active_mods),
-                    "sim_clock": self.twin.get_sim_clock()
+                    "sim_clock": sim_clock
                 },
                 source="attack_engine"
             ))

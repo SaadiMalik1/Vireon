@@ -14,7 +14,7 @@
 
 import numpy as np
 from typing import List, Dict, Optional
-from vireon.runtime.twin import DigitalTwin
+from vireon.sdk.state import IStateStore
 
 from .base import ISignalModifier
 
@@ -23,7 +23,7 @@ class NoiseInjectionAttack(ISignalModifier):
         self.target_channels = target_channels
         self.noise_level = noise_level_microvolts
 
-    def apply(self, data: np.ndarray, eeg_channels: List[int], sample_rate: int, twin: DigitalTwin, rng: Optional[np.random.Generator] = None) -> np.ndarray:
+    def apply(self, data: np.ndarray, eeg_channels: List[int], sample_rate: int, state_store: IStateStore, rng: Optional[np.random.Generator] = None) -> np.ndarray:
         mutated_data = data.copy()
         for ch in self.target_channels:
             if ch in eeg_channels:
@@ -40,7 +40,7 @@ class SignalDriftAttack(ISignalModifier):
         # Maintain drift offsets across calls
         self.offsets: Dict[int, float] = {ch: 0.0 for ch in target_channels}
 
-    def apply(self, data: np.ndarray, eeg_channels: List[int], sample_rate: int, twin: DigitalTwin, rng: Optional[np.random.Generator] = None) -> np.ndarray:
+    def apply(self, data: np.ndarray, eeg_channels: List[int], sample_rate: int, state_store: IStateStore, rng: Optional[np.random.Generator] = None) -> np.ndarray:
         mutated_data = data.copy()
         num_samples = data.shape[1]
         dt = num_samples / sample_rate
@@ -63,7 +63,7 @@ class ImpedanceSpikeAttack(ISignalModifier):
         self.powerline_noise_amplitude = powerline_noise_amplitude
         self.time_counter = 0.0
 
-    def apply(self, data: np.ndarray, eeg_channels: List[int], sample_rate: int, twin: DigitalTwin, rng: Optional[np.random.Generator] = None) -> np.ndarray:
+    def apply(self, data: np.ndarray, eeg_channels: List[int], sample_rate: int, state_store: IStateStore, rng: Optional[np.random.Generator] = None) -> np.ndarray:
         mutated_data = data.copy()
         num_samples = data.shape[1]
 
@@ -75,7 +75,8 @@ class ImpedanceSpikeAttack(ISignalModifier):
         for ch in self.target_channels:
             if ch in eeg_channels:
                 # Update impedance in digital twin to spike value
-                twin.update_impedance(ch, self.spike_value)
+                if hasattr(state_store, "set"):
+                    state_store.set(f"impedance_ch{ch}", self.spike_value, source="attack_engine")
 
                 # Zero out clean signal and inject powerline noise + high random noise
                 high_noise = (rng if rng is not None else np.random).normal(0, 30.0, size=num_samples)
@@ -83,10 +84,11 @@ class ImpedanceSpikeAttack(ISignalModifier):
 
         return mutated_data
 
-    def revert(self, twin: DigitalTwin) -> None:
+    def revert(self, state_store: IStateStore) -> None:
         """Revert impedance to nominal 5.0 kOhm."""
         for ch in self.target_channels:
-            twin.update_impedance(ch, 5.0)
+            if hasattr(state_store, "set"):
+                state_store.set(f"impedance_ch{ch}", 5.0, source="attack_engine")
 
 
 class SignalSuppressionAttack(ISignalModifier):
@@ -94,7 +96,7 @@ class SignalSuppressionAttack(ISignalModifier):
         self.target_channels = target_channels
         self.attenuation_factor = attenuation_factor
 
-    def apply(self, data: np.ndarray, eeg_channels: List[int], sample_rate: int, twin: DigitalTwin, rng: Optional[np.random.Generator] = None) -> np.ndarray:
+    def apply(self, data: np.ndarray, eeg_channels: List[int], sample_rate: int, state_store: IStateStore, rng: Optional[np.random.Generator] = None) -> np.ndarray:
         mutated_data = data.copy()
         for ch in self.target_channels:
             if ch in eeg_channels:

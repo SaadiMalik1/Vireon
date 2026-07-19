@@ -14,7 +14,7 @@
 
 import numpy as np
 from typing import List, Optional
-from vireon.runtime.twin import DigitalTwin
+from vireon.sdk.state import IStateStore
 
 from .base import ISignalModifier
 
@@ -68,7 +68,7 @@ class AdversarialOptimizerAttack(ISignalModifier):
         self.current_gene_idx = 0
         self.generation += 1
 
-    def apply(self, data: np.ndarray, eeg_channels: List[int], sample_rate: int, twin: DigitalTwin, rng: Optional[np.random.Generator] = None) -> np.ndarray:
+    def apply(self, data: np.ndarray, eeg_channels: List[int], sample_rate: int, state_store: IStateStore, rng: Optional[np.random.Generator] = None) -> np.ndarray:
         num_samples = data.shape[1]
         
         # 1. Evaluate fitness of the PREVIOUS gene based on twin's current physical state
@@ -126,7 +126,7 @@ class TraceReplayAttack(ISignalModifier):
             raise IOError(f"Failed to load trace data: {e}")
         self.trace_index = 0
 
-    def apply(self, data: np.ndarray, eeg_channels: List[int], sample_rate: int, twin: DigitalTwin, rng: Optional[np.random.Generator] = None) -> np.ndarray:
+    def apply(self, data: np.ndarray, eeg_channels: List[int], sample_rate: int, state_store: IStateStore, rng: Optional[np.random.Generator] = None) -> np.ndarray:
         mutated_data = data.copy()
         num_samples = data.shape[1]
         
@@ -153,7 +153,7 @@ class RFJammingAttack(ISignalModifier):
     def __init__(self, drop_rate: float = 0.5):
         self.drop_rate = drop_rate
 
-    def apply(self, data: np.ndarray, eeg_channels: List[int], sample_rate: int, twin: DigitalTwin, rng: Optional[np.random.Generator] = None) -> np.ndarray:
+    def apply(self, data: np.ndarray, eeg_channels: List[int], sample_rate: int, state_store: IStateStore, rng: Optional[np.random.Generator] = None) -> np.ndarray:
         # We don't mutate the raw analog signal; we just set the drop rate on the twin
         # so the Emulator drops packets during serialization.
         setattr(twin, "rf_packet_drop_rate", self.drop_rate)
@@ -171,7 +171,7 @@ class FramingDesynchronizationAttack(ISignalModifier):
         self.target_channels = target_channels
         self.inject_start_byte = inject_start_byte
 
-    def apply(self, data: np.ndarray, eeg_channels: List[int], sample_rate: int, twin: DigitalTwin, rng: Optional[np.random.Generator] = None) -> np.ndarray:
+    def apply(self, data: np.ndarray, eeg_channels: List[int], sample_rate: int, state_store: IStateStore, rng: Optional[np.random.Generator] = None) -> np.ndarray:
         mutated_data = data.copy()
         
         # Calculate dynamic scaling based on the DigitalTwin ADC params
@@ -208,7 +208,7 @@ class SessionReplayAttack(ISignalModifier):
         self.is_capturing = True
         self.replay_index = 0
 
-    def apply(self, data: np.ndarray, eeg_channels: List[int], sample_rate: int, twin: DigitalTwin, rng: Optional[np.random.Generator] = None) -> np.ndarray:
+    def apply(self, data: np.ndarray, eeg_channels: List[int], sample_rate: int, state_store: IStateStore, rng: Optional[np.random.Generator] = None) -> np.ndarray:
         mutated_data = data.copy()
         num_samples = data.shape[1]
         dt = num_samples / sample_rate
@@ -253,7 +253,7 @@ class TemporalEvasionAttack(ISignalModifier):
         self.amplitude = amplitude
         self.time_counter = 0.0
         
-    def apply(self, data: np.ndarray, eeg_channels: List[int], sample_rate: int, twin: DigitalTwin, rng: Optional[np.random.Generator] = None) -> np.ndarray:
+    def apply(self, data: np.ndarray, eeg_channels: List[int], sample_rate: int, state_store: IStateStore, rng: Optional[np.random.Generator] = None) -> np.ndarray:
         mutated_data = data.copy()
         num_samples = data.shape[1]
         

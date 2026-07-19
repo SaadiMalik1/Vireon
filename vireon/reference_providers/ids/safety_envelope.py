@@ -22,7 +22,7 @@ system must automatically fallback to a safe mode.
 """
 
 from typing import Dict, Any, Tuple
-from vireon.runtime.twin import DigitalTwin
+from vireon.sdk.state import IStateStore
 
 class SafetyEnvelope:
     def __init__(self, 
@@ -35,15 +35,15 @@ class SafetyEnvelope:
         self.max_temperature = max_temperature_c
         self.max_charge_density = max_charge_density_uc_cm2
 
-    def evaluate(self, twin: DigitalTwin) -> Tuple[bool, Dict[str, Any]]:
+    def evaluate(self, state_store: IStateStore) -> Tuple[bool, Dict[str, Any]]:
         """
         Evaluates the current state against the safety envelope.
         Returns (is_safe, iso_14971_metrics).
         """
         # Current state
-        amp = twin.stimulation_amplitude_ma
-        freq = twin.stimulation_frequency_hz
-        temp = twin.temperature_celsius
+        amp = state_store.get("stimulation_amplitude_ma", 0.0)
+        freq = state_store.get("stimulation_frequency_hz", 0.0)
+        temp = state_store.get("temperature_celsius", 37.0)
         
         # Simplistic charge density calculation: Amplitude (mA) * Pulse Width (ms) / Electrode Area (cm^2)
         # We assume standard 90us pulse width and 0.05 cm^2 electrode area for this simulation

@@ -1,26 +1,47 @@
-# VIREON
+# VIREON Framework
 
-## What is this?
-VIREON is the core runtime and SDK for the VIREON ecosystem. It provides the foundational architecture for plugin lifecycle management, provider execution, and the integration of the NeuroDSL language.
+[![Constitution](https://img.shields.io/badge/Architecture-Constitution-blue.svg)](.github/CONSTITUTION.md)
 
-## Who is it for?
-This repository is for core contributors, framework engineers, and developers building integrations, plugins, or providers on top of the VIREON SDK.
+**VIREON** is the professional validation infrastructure and runtime orchestrator for the VIREON ecosystem. It provides the core foundational components—such as the `StateStore`, `EventBus`, and Capability Engine—that enable high-performance neuro-security testing, plugin lifecycle management, and integration with the NeuroDSL language.
+
+## Architecture & Ecosystem
+
+The VIREON ecosystem is split by design to ensure the core orchestrator remains highly performant and free of monolithic clutter. 
+- **`vireon`** (This Repository): The core framework, public SDKs, and security validation infrastructure. Intended for professional use and proprietary integration.
+- **`vireon-lab`**: The educational platform, Streamlit dashboards, and interactive attack scenarios. 
+- **`neurodsl`**: The underlying Rust-based Domain Specific Language engine.
+
+For comprehensive architectural design, refer to the [Ecosystem Overview](docs/architecture/ECOSYSTEM.md) and the [Architectural Constitution](.github/CONSTITUTION.md).
 
 ## Installation
+
+Install the VIREON core SDK:
 ```bash
 pip install vireon[all]
 ```
-For development installation, refer to the official [Installation Guide](docs/INSTALLATION.md).
+*Note: For a guided development setup, see [INSTALLATION.md](docs/INSTALLATION.md).*
 
-## Quick Example
+## Quick Start
+
+The VIREON runtime acts as a thin orchestrator.
+
 ```python
-from vireon.core import ReplayEngine
+from vireon.sdk.state import IStateStore
+from vireon.runtime.event_bus import EventBus
+from vireon.services.engine import ReplayEngine
+
+# 1. Initialize core infrastructure
+state_store = IStateStore()
+event_bus = EventBus()
+
+# 2. Start the simulation engine
 engine = ReplayEngine()
 engine.start()
 ```
 
-## Where is the documentation?
-The canonical documentation for the entire VIREON ecosystem is located in the `vireon` repository under `docs/`.
+## Canonical Documentation
 
-## Repository Status
-Active / Maintained. This is the canonical core repository.
+All official documentation for the VIREON ecosystem is hosted within this repository:
+- [Architecture & Design](docs/architecture/)
+- [API Reference](docs/api/)
+- [Threat Models & Physics](docs/reference/)

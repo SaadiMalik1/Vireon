@@ -14,7 +14,7 @@
 
 import numpy as np
 from typing import List, Optional
-from vireon.runtime.twin import DigitalTwin
+from vireon.sdk.state import IStateStore
 
 from .base import ISignalModifier
 
@@ -29,7 +29,7 @@ class NeuroPhishingAttack(ISignalModifier):
         self.manipulation_type = manipulation_type
         self.time_counter = 0.0
 
-    def apply(self, data: np.ndarray, eeg_channels: List[int], sample_rate: int, twin: DigitalTwin, rng: Optional[np.random.Generator] = None) -> np.ndarray:
+    def apply(self, data: np.ndarray, eeg_channels: List[int], sample_rate: int, state_store: IStateStore, rng: Optional[np.random.Generator] = None) -> np.ndarray:
         mutated_data = data.copy()
         num_samples = data.shape[1]
         
@@ -75,7 +75,7 @@ class FirmwareRollbackAttack(ISignalModifier):
         dummy_signature = b'\x00' * 64
         return header + dummy_signature + malicious_binary
 
-    def apply(self, data: np.ndarray, eeg_channels: List[int], sample_rate: int, twin: DigitalTwin, rng: Optional[np.random.Generator] = None) -> np.ndarray:
+    def apply(self, data: np.ndarray, eeg_channels: List[int], sample_rate: int, state_store: IStateStore, rng: Optional[np.random.Generator] = None) -> np.ndarray:
         if not self.has_fired:
             # Construct a malicious payload: [Version header (4 bytes)] + [Overflow Payload]
             # Version is lower than the expected minimum (e.g., SVN 0)
@@ -89,7 +89,7 @@ class FirmwareRollbackAttack(ISignalModifier):
             
         return data
 
-    def revert(self, twin: DigitalTwin) -> None:
+    def revert(self, state_store: IStateStore) -> None:
         """Clear the clinical alert if it was triggered."""
         if self.has_fired:
             twin.set_clinical_alert(False, "Nominal")
@@ -104,7 +104,7 @@ class InsiderThreatAttack(ISignalModifier):
         self.target_channels = target_channels
         self.has_fired = False
 
-    def apply(self, data: np.ndarray, eeg_channels: List[int], sample_rate: int, twin: DigitalTwin, rng: Optional[np.random.Generator] = None) -> np.ndarray:
+    def apply(self, data: np.ndarray, eeg_channels: List[int], sample_rate: int, state_store: IStateStore, rng: Optional[np.random.Generator] = None) -> np.ndarray:
         if not self.has_fired:
             print("[InsiderThreatAttack] Injecting malicious clinical configuration...")
             # Force a dangerous parameter directly on the twin
@@ -118,7 +118,7 @@ class InsiderThreatAttack(ISignalModifier):
             self.has_fired = True
         return data
 
-    def revert(self, twin: DigitalTwin) -> None:
+    def revert(self, state_store: IStateStore) -> None:
         if self.has_fired:
             if hasattr(twin, "_lock"):
                 with twin._lock:

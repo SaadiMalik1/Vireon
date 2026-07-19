@@ -43,7 +43,6 @@ class ReplayEngine:
                  loop_dataset: bool = True):
         self.state_store = state_store
         self.attack_engine = attack_engine
-        self.twin = getattr(attack_engine, "twin", None)
         self.provider = provider
 
         self.last_anomaly_score = 0.0
@@ -123,7 +122,6 @@ class ReplayEngine:
 
         self.running = True
         self._sim_clock = 0.0
-        self.twin.set_sim_clock(0.0)
         self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=4)
         self.thread = threading.Thread(target=self._loop, args=(interval_sec,), daemon=True)
         self.thread.start()
@@ -247,7 +245,8 @@ class ReplayEngine:
                         return raw_data
                     except (OSError, ValueError, EOFError, IndexError) as loop_e:
                         logger.error(f"Failed to restart dataset loop: {loop_e}")
-                        self.twin.hazard_state = "FAULT"
+                        if hasattr(self.state_store, "set"):
+                            self.state_store.set("hazard_state", "FAULT", source="engine")
                         return np.full((num_channels, num_samples_per_chunk), np.nan)
                 else:
                     logger.info("[ReplayEngine] Dataset exhausted, stopping.")
@@ -260,7 +259,8 @@ class ReplayEngine:
         with self._buffer_lock:
             self._current_buffer = mutated_data
 
-        if self.twin.connected:
+        connected = self.state_store.get("connected", True) if hasattr(self.state_store, "get") else getattr(self.state_store, "connected", True)
+        if connected:
             if self.scribe:
                 try:
                     _ = self.scribe.execute_step(mutated_data.flatten().tolist())

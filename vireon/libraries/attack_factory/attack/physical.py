@@ -14,14 +14,14 @@
 
 import numpy as np
 from typing import List, Optional
-from vireon.runtime.twin import DigitalTwin
+from vireon.sdk.state import IStateStore
 
 from .base import ISignalModifier
 
 class ElectrodeSaturationAttack(ISignalModifier):
     def __init__(self, target_channels: List[int]):
         self.target_channels = target_channels
-    def apply(self, data: np.ndarray, eeg_channels: List[int], sample_rate: int, twin: DigitalTwin, rng: Optional[np.random.Generator] = None) -> np.ndarray:
+    def apply(self, data: np.ndarray, eeg_channels: List[int], sample_rate: int, state_store: IStateStore, rng: Optional[np.random.Generator] = None) -> np.ndarray:
         mutated = data.copy()
         for ch in self.target_channels:
             if ch in eeg_channels: 
@@ -33,7 +33,7 @@ class PacketLossAttack(ISignalModifier):
     def __init__(self, target_channels: List[int], drop_prob: float = 0.1):
         self.target_channels = target_channels
         self.drop_prob = drop_prob
-    def apply(self, data: np.ndarray, eeg_channels: List[int], sample_rate: int, twin: DigitalTwin, rng: Optional[np.random.Generator] = None) -> np.ndarray:
+    def apply(self, data: np.ndarray, eeg_channels: List[int], sample_rate: int, state_store: IStateStore, rng: Optional[np.random.Generator] = None) -> np.ndarray:
         mutated = data.copy()
         mask = (rng if rng is not None else np.random).random(data.shape[1]) < self.drop_prob
         for ch in self.target_channels:
@@ -46,7 +46,7 @@ class TimingJitterAttack(ISignalModifier):
     def __init__(self, target_channels: List[int], jitter_ms: float = 2.0):
         self.target_channels = target_channels
         self.jitter_ms = jitter_ms
-    def apply(self, data: np.ndarray, eeg_channels: List[int], sample_rate: int, twin: DigitalTwin, rng: Optional[np.random.Generator] = None) -> np.ndarray:
+    def apply(self, data: np.ndarray, eeg_channels: List[int], sample_rate: int, state_store: IStateStore, rng: Optional[np.random.Generator] = None) -> np.ndarray:
         mutated = data.copy()
         for ch in self.target_channels:
             if ch in eeg_channels:
@@ -60,7 +60,7 @@ class DropoutAttack(ISignalModifier):
     def __init__(self, target_channels: List[int], dropout_length_sec: float = 0.5):
         self.target_channels = target_channels
         self.dropout_length_sec = dropout_length_sec
-    def apply(self, data: np.ndarray, eeg_channels: List[int], sample_rate: int, twin: DigitalTwin, rng: Optional[np.random.Generator] = None) -> np.ndarray:
+    def apply(self, data: np.ndarray, eeg_channels: List[int], sample_rate: int, state_store: IStateStore, rng: Optional[np.random.Generator] = None) -> np.ndarray:
         mutated = data.copy()
         drop_samples = int(self.dropout_length_sec * sample_rate)
         if drop_samples > 0 and drop_samples < data.shape[1]:
@@ -76,7 +76,7 @@ class ClippingAttack(ISignalModifier):
     def __init__(self, target_channels: List[int], clip_value: float = 100.0):
         self.target_channels = target_channels
         self.clip_value = clip_value
-    def apply(self, data: np.ndarray, eeg_channels: List[int], sample_rate: int, twin: DigitalTwin, rng: Optional[np.random.Generator] = None) -> np.ndarray:
+    def apply(self, data: np.ndarray, eeg_channels: List[int], sample_rate: int, state_store: IStateStore, rng: Optional[np.random.Generator] = None) -> np.ndarray:
         mutated = data.copy()
         for ch in self.target_channels:
             if ch in eeg_channels: 
@@ -87,7 +87,7 @@ class ClippingAttack(ISignalModifier):
 class AmplifierSaturationAttack(ISignalModifier):
     def __init__(self, target_channels: List[int]):
         self.target_channels = target_channels
-    def apply(self, data: np.ndarray, eeg_channels: List[int], sample_rate: int, twin: DigitalTwin, rng: Optional[np.random.Generator] = None) -> np.ndarray:
+    def apply(self, data: np.ndarray, eeg_channels: List[int], sample_rate: int, state_store: IStateStore, rng: Optional[np.random.Generator] = None) -> np.ndarray:
         mutated = data.copy()
         for ch in self.target_channels:
             if ch in eeg_channels: 
@@ -99,7 +99,7 @@ class EMIAttack(ISignalModifier):
     def __init__(self, target_channels: List[int]):
         self.target_channels = target_channels
         self.time_counter = 0.0
-    def apply(self, data: np.ndarray, eeg_channels: List[int], sample_rate: int, twin: DigitalTwin, rng: Optional[np.random.Generator] = None) -> np.ndarray:
+    def apply(self, data: np.ndarray, eeg_channels: List[int], sample_rate: int, state_store: IStateStore, rng: Optional[np.random.Generator] = None) -> np.ndarray:
         mutated = data.copy()
         t = self.time_counter + np.arange(data.shape[1]) / sample_rate
         self.time_counter += data.shape[1] / sample_rate
@@ -113,7 +113,7 @@ class EMIAttack(ISignalModifier):
 class MotionArtifactAttack(ISignalModifier):
     def __init__(self, target_channels: List[int]):
         self.target_channels = target_channels
-    def apply(self, data: np.ndarray, eeg_channels: List[int], sample_rate: int, twin: DigitalTwin, rng: Optional[np.random.Generator] = None) -> np.ndarray:
+    def apply(self, data: np.ndarray, eeg_channels: List[int], sample_rate: int, state_store: IStateStore, rng: Optional[np.random.Generator] = None) -> np.ndarray:
         mutated = data.copy()
         for ch in self.target_channels:
             if ch in eeg_channels:
@@ -129,7 +129,7 @@ class CrossTalkAttack(ISignalModifier):
         self.target_channels = target_channels
         self.source_channel = source_channel
         self.crosstalk_factor = crosstalk_factor
-    def apply(self, data: np.ndarray, eeg_channels: List[int], sample_rate: int, twin: DigitalTwin, rng: Optional[np.random.Generator] = None) -> np.ndarray:
+    def apply(self, data: np.ndarray, eeg_channels: List[int], sample_rate: int, state_store: IStateStore, rng: Optional[np.random.Generator] = None) -> np.ndarray:
         mutated = data.copy()
         if self.source_channel in eeg_channels:
             source_data = data[self.source_channel, :]
@@ -143,7 +143,7 @@ class ClockSkewAttack(ISignalModifier):
     def __init__(self, target_channels: List[int], skew_rate: float = 0.01):
         self.target_channels = target_channels
         self.skew_rate = skew_rate
-    def apply(self, data: np.ndarray, eeg_channels: List[int], sample_rate: int, twin: DigitalTwin, rng: Optional[np.random.Generator] = None) -> np.ndarray:
+    def apply(self, data: np.ndarray, eeg_channels: List[int], sample_rate: int, state_store: IStateStore, rng: Optional[np.random.Generator] = None) -> np.ndarray:
         # Simplistic representation of clock skew as a slight drift in data interpolation
         mutated = data.copy()
         num_samples = data.shape[1]
