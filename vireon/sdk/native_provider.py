@@ -6,7 +6,6 @@ import logging
 from typing import Any
 
 from vireon.sdk.provider_interfaces.v1 import (
-    IProviderV1,
     IPhysicsProviderV1,
     IIDSProviderV1,
     IClinicalProviderV1

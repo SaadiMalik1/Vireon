@@ -1,8 +1,4 @@
-import pytest
-import os
-import json
-import base64
-from unittest.mock import patch, mock_open, MagicMock
+from unittest.mock import patch, mock_open
 
 # Patch the secret generation during import
 with patch('os.path.exists', return_value=True), \

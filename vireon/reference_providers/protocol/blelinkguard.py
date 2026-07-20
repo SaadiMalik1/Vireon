@@ -15,7 +15,7 @@
 from typing import Optional
 import threading
 
-from vireon.sdk.events import IEventBus, Event
+from vireon.sdk.events import Event
 from vireon.sdk.state import IStateStore
 
 class BLEConstants:

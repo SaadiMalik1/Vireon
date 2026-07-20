@@ -1,4 +1,3 @@
-import pytest
 import numpy as np
 from vireon.runtime.twin import DigitalTwin
 from vireon.libraries.attack_factory.attack.physical import (

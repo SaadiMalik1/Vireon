@@ -1,7 +1,7 @@
 import logging
 from vireon.sdk.provider_interfaces.v1 import IPhysicsProviderV1
 from vireon.sdk.capability.descriptor import CapabilityDescriptor
-from vireon.runtime.orchestrator import VireonOrchestrator, ProviderState
+from vireon.runtime.orchestrator import VireonOrchestrator
 from vireon.runtime.enforcement import SecurityFault
 
 logging.basicConfig(level=logging.INFO)

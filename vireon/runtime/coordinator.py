@@ -29,7 +29,7 @@ from vireon.runtime.twin import DigitalTwin
 from vireon.runtime.engine import ReplayEngine
 from vireon.runtime.attack import SignalAttackEngine
 from vireon.runtime.event_bus import EventBus, Event
-from vireon.runtime.config import ExperimentConfig
+from vireon.runtime.configuration import ExperimentConfig
 from vireon.runtime.plugin_registry import PluginRegistry, register_builtin_plugins
 from vireon.runtime.utils import format_telemetry_table
 try:

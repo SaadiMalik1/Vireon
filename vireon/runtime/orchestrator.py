@@ -2,7 +2,7 @@
 # Vireon V2 Orchestrator Kernel
 
 import logging
-from typing import Dict, Any, List
+from typing import Dict, Any
 
 from vireon.sdk.lifecycle.state_machine import ILifecycleManager, ProviderState
 from vireon.sdk.capability.descriptor import CapabilityDescriptor

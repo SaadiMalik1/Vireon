@@ -1,4 +1,3 @@
-import pytest
 import numpy as np
 from vireon.sdk.anonymizer import TemporalJittering, ChannelPermutation, SpectralMasking, ReidentificationRiskScorer
 

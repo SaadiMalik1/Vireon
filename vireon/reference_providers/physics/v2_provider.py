@@ -5,7 +5,6 @@ import os
 import json
 import logging
 from dataclasses import dataclass
-from typing import Any
 
 from vireon.sdk.provider_interfaces.v1 import IPhysicsProviderV1
 from vireon.sdk.capability.descriptor import CapabilityDescriptor

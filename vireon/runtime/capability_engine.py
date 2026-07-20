@@ -14,7 +14,7 @@
 
 from typing import Any
 from vireon.sdk.manifest import CapabilityManifest
-from vireon.runtime.config import ExperimentConfig
+from vireon.runtime.configuration import ExperimentConfig
 
 class CapabilityViolationError(Exception):
     pass

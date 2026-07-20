@@ -1,4 +1,3 @@
-import pytest
 from vireon.sdk.subprocess_provider import SubprocessProvider
 
 from vireon.sdk.manifest import CapabilityManifest

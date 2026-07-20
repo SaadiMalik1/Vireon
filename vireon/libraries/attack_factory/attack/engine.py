@@ -14,7 +14,6 @@
 
 import numpy as np
 from typing import List, Optional
-from vireon.sdk.state import IStateStore
 from vireon.runtime.event_bus import EventBus, Event
 
 from .base import ISignalModifier

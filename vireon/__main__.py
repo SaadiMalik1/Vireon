@@ -48,7 +48,7 @@ def cli():
 @click.option('--seed', type=int, default=None, help='Random seed for deterministic reproducibility')
 def run(config_file, duration, board, serial_port, dataset, attack, seed):
     """Run a headless simulation experiment."""
-    from vireon.runtime.config import load_config, ExperimentConfig
+    from vireon.runtime.configuration import load_config, ExperimentConfig
     from vireon.runtime.orchestrator import Orchestrator
 
     if config_file and os.path.exists(config_file):

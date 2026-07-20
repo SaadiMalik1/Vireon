@@ -1,9 +1,9 @@
 import warnings
-from vireon.reference_providers.physics.dynamics import *
+from providers.dynamics.kuramoto import *
 
 warnings.warn(
     "vireon.runtime.dynamics is deprecated and will be removed in v2.0. "
-    "Import from vireon.reference_providers.physics.dynamics instead.",
+    "Import from providers.dynamics.kuramoto instead.",
     DeprecationWarning,
     stacklevel=2
 )

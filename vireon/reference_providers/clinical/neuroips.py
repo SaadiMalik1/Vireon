@@ -17,7 +17,7 @@ from typing import List, Tuple, Optional
 import math
 import threading
 
-from vireon.sdk.events import IEventBus, Event
+from vireon.sdk.events import Event
 from vireon.sdk.state import IStateStore
 from vireon.reference_providers.ids.safety_envelope import SafetyEnvelope
 from vireon.sdk.utils import calculate_rms

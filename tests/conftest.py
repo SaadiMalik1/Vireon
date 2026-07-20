@@ -20,7 +20,7 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from vireon.runtime.twin import DigitalTwin
-from vireon.runtime.config import ExperimentConfig
+from vireon.runtime.configuration import ExperimentConfig
 
 @pytest.fixture
 def mock_twin():

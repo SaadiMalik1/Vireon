@@ -1,4 +1,3 @@
-import pytest
 from vireon.sdk.plugin import OrchestratorContext, IVireonPlugin, IFirmwareProvider
 from vireon.sdk.manifest import CapabilityManifest
 from unittest.mock import MagicMock

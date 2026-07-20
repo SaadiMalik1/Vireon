@@ -1,9 +1,9 @@
 import warnings
-from vireon.libraries.stix.threat_intel import *
+from providers.threat_models.intel import *
 
 warnings.warn(
     "vireon.runtime.threat_intel is deprecated and will be removed in v2.0. "
-    "Import from vireon.libraries.stix.threat_intel instead.",
+    "Import from providers.threat_models.intel instead.",
     DeprecationWarning,
     stacklevel=2
 )

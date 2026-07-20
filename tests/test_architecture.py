@@ -1,6 +1,5 @@
 import ast
 import os
-import pytest
 
 def get_all_python_files(directory):
     for root, _, files in os.walk(directory):

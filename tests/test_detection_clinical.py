@@ -1,5 +1,3 @@
-import numpy as np
-import pytest
 from vireon.runtime.twin import DigitalTwin
 from vireon.reference_providers.ids.detection import SecurityEngine
 
