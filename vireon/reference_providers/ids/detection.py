@@ -559,8 +559,9 @@ class SecurityEngine:
         if self.twin and hasattr(self.twin, "brain_regions") and brain_region_id in self.twin.brain_regions:
             brain_region_name = self.twin.brain_regions[brain_region_id].get("name")
             
+        import time
         log_entry = {
-            "timestamp": self.twin.get_sim_clock(),
+            "timestamp": getattr(self.twin, 'get_sim_clock', time.time)(),
             "anomaly_type": anomaly_type,
             "channel": channel,
             "value": round(value, 2),

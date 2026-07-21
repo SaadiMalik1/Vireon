@@ -1,0 +1,2 @@
+include vireon/**/*.json
+include providers/**/*.json

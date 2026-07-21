@@ -19,7 +19,7 @@ import math
 from pathlib import Path
 import numpy as np
 import importlib
-StateStore = importlib.import_module('vireon.runtime.state_store').StateStore
+DigitalTwin = importlib.import_module('vireon.runtime.twin').DigitalTwin
 EventBus = importlib.import_module('vireon.runtime.event_bus').EventBus
 
 from typing import Dict, List, Optional, Tuple, Any
@@ -208,7 +208,7 @@ class ValidationRunner:
         y_true = []
         y_score = []
 
-        twin = StateStore(EventBus())
+        twin = DigitalTwin()
         ids_engine = SecurityEngine(twin)
 
         # Warmup
@@ -273,7 +273,7 @@ class ValidationRunner:
 
         data = np.array(baseline_raw).T if isinstance(baseline_raw[0], list) else np.array(baseline_raw).reshape(1, -1)
 
-        twin = StateStore(EventBus())
+        twin = DigitalTwin()
         ids_engine = SecurityEngine(twin)
 
         y_true = []
@@ -303,7 +303,7 @@ class ValidationRunner:
             attack_data = np.array(attack_raw).T if isinstance(attack_raw[0], list) else np.array(attack_raw).reshape(1, -1)
             
             # Restart twin/IDS for each attack to not carry over anomalous state
-            twin_a = StateStore(EventBus())
+            twin_a = DigitalTwin()
             twin_a.set("sample_rate", trace_json.get("fs", 250))
             twin_a.set("num_channels", attack_data.shape[0])
             ids_a = SecurityEngine(twin_a)
