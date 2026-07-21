@@ -7,6 +7,9 @@ where = ["."]
 include = ["vireon*", "providers*"]
 exclude = ["tests*", "experiments*", "threat_models*", "knowledge*", "docs*", "dashboard*", "scripts*", "scenarios*"]
 
+[tool.setuptools.package-data]
+"*" = ["*.json", "*.yaml", "*.yml", "*.txt", "*.md"]
+
 [project]
 name = "vireon"
 version = "1.0.0"
