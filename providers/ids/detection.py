@@ -19,9 +19,9 @@ import logging
 import threading
 import importlib.resources as pkg_resources
 
-from vireon.runtime.twin import DigitalTwin
-from vireon.runtime.event_bus import EventBus, Event
-from vireon.runtime.threat_intel import ThreatIntelligence
+from vireon.sdk.base_interfaces import ITwin
+from vireon.sdk.events import Event, IEventBus
+from providers.threat_models.intel import ThreatIntelligence
 from vireon.sdk.signal_utils import calculate_rms
 
 logger = logging.getLogger(__name__)
@@ -251,7 +251,7 @@ class SecurityEngine:
     spoofing, jamming, and loop synchronization attacks.
     """
 
-    def __init__(self, twin: DigitalTwin, event_bus: Optional[EventBus] = None,
+    def __init__(self, twin: ITwin, event_bus: Optional[IEventBus] = None,
                  rms_high_threshold: float = 120.0,
                  rms_low_threshold: float = 0.5,
                  beta_power_threshold: float = 35.0,

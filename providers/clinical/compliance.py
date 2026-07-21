@@ -299,7 +299,7 @@ def generate_compliance_report(project_root: str, sbom: Optional[Dict] = None) -
     Returns:
         Compliance report dictionary.
     """
-    from vireon.runtime.sbom import generate_sbom
+    from vireon.services.sbom import generate_sbom
 
     if sbom is None:
         sbom = generate_sbom(project_root)

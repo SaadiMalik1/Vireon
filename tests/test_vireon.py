@@ -24,7 +24,7 @@ from vireon.runtime.attack import (
     SignalSuppressionAttack
 )
 from vireon.runtime.engine import ReplayEngine
-from vireon.runtime.utils import calculate_rms
+from vireon.sdk.signal_utils import calculate_rms
 
 class TestDigitalTwin(unittest.TestCase):
     def setUp(self):

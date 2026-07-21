@@ -1,9 +1,9 @@
 import warnings
-from vireon.reference_providers.security.authentication import *
+from providers.authentication.tokens import *
 
 warnings.warn(
     "vireon.runtime.authentication is deprecated and will be removed in v2.0. "
-    "Import from vireon.reference_providers.security.authentication instead.",
+    "Import from providers.authentication.tokens instead.",
     DeprecationWarning,
     stacklevel=2
 )

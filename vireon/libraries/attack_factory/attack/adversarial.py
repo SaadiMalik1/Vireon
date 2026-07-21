@@ -73,7 +73,8 @@ class AdversarialOptimizerAttack(ISignalModifier):
         
         # 1. Evaluate fitness of the PREVIOUS gene based on twin's current physical state
         if self._last_injected:
-            current_state = twin.get_state()
+            # The attacker analyzes the twin state to find optimal perturbation
+            current_state = state_store.get_state()
             # Fitness is directly tied to the twin's real-world beta power, ensuring
             # the GA learns how to evade the IDS/IPS in the environment.
             beta_power = current_state.get("beta_power", 0.0)
@@ -155,8 +156,10 @@ class RFJammingAttack(ISignalModifier):
 
     def apply(self, data: np.ndarray, eeg_channels: List[int], sample_rate: int, state_store: IStateStore, rng: Optional[np.random.Generator] = None) -> np.ndarray:
         # We don't mutate the raw analog signal; we just set the drop rate on the twin
-        # so the Emulator drops packets during serialization.
-        setattr(twin, "rf_packet_drop_rate", self.drop_rate)
+        if hasattr(state_store, "set"):
+            state_store.set("rf_packet_drop_rate", self.drop_rate)
+        else:
+            setattr(state_store, "rf_packet_drop_rate", self.drop_rate)
         return data
 
 
@@ -175,8 +178,8 @@ class FramingDesynchronizationAttack(ISignalModifier):
         mutated_data = data.copy()
         
         # Calculate dynamic scaling based on the DigitalTwin ADC params
-        # VREF and Gain dictate the scale factor.
-        scale_factor = (1000000.0 * twin.adc_vref) / (twin.adc_gain * ((2 ** (twin.adc_resolution_bits - 1)) - 1))
+        if hasattr(state_store, "adc_vref") and hasattr(state_store, "adc_gain") and hasattr(state_store, "adc_resolution_bits"):
+            scale_factor = (1000000.0 * state_store.adc_vref) / (state_store.adc_gain * ((2 ** (state_store.adc_resolution_bits - 1)) - 1))
         
         # 0xA0A0A0 in 24-bit signed = 10526880 - 16777216 = -6250336
         # 0xC0C0C0 in 24-bit signed = 12632256 - 16777216 = -4144960

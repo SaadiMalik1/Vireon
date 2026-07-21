@@ -32,12 +32,7 @@ from vireon.runtime.event_bus import EventBus, Event
 from vireon.runtime.configuration import ExperimentConfig
 from vireon.runtime.plugin_registry import PluginRegistry, register_builtin_plugins
 from vireon.runtime.utils import format_telemetry_table
-try:
-    import importlib
-    _mod = importlib.import_module("vireon_lab.reference_providers.clinical.closed_loop")
-    ClosedLoopSimulator = getattr(_mod, "ClosedLoopSimulator")
-except ImportError:
-    ClosedLoopSimulator = None
+
 
 logger = logging.getLogger(__name__)
 class Coordinator:
@@ -174,68 +169,10 @@ class Coordinator:
         )
 
         # 5. Clinical simulation
-        self.clinical_sim = ClosedLoopSimulator(self.twin)
-        if self.config.emulation.dbs_mode or self.config.web.enabled:
-            print("[VIREON] Initializing Virtual DBS Controller...")
-            try:
-                import importlib
-                _mod = importlib.import_module("vireon_lab.reference_providers.clinical.closed_loop")
-                ClosedLoopDBSController = getattr(_mod, 'ClosedLoopDBSController')
-            except ImportError:
-                ClosedLoopDBSController = None
-            self.dbs_controller = ClosedLoopDBSController(self.twin)
+        builder.setup_clinical()
 
-        # 6. Security layer
-        if self.config.security.enabled or self.config.web.enabled:
-            print("[VIREON] Initializing Neuro Security Layer (IDS/IPS Active)...")
-            self.ids = self.registry.create(
-                "security", "ids",
-                twin=self.twin, event_bus=self.event_bus,
-                rms_high_threshold=self.config.security.rms_high_threshold,
-                rms_low_threshold=self.config.security.rms_low_threshold,
-                beta_power_threshold=self.config.security.beta_power_threshold,
-                seed=self.config.seed
-            )
-            self.ips = self.registry.create(
-                "security", "ips",
-                twin=self.twin, ids=self.ids, event_bus=self.event_bus,
-                max_stimulation_amplitude_ma=self.config.security.max_stimulation_amplitude_ma
-            )
-            self.link_guard = self.registry.create("security", "ble_guard", twin=self.twin, event_bus=self.event_bus)
-            
-        # 6.5 NSP Wrapper
-        if self.config.security.nsp_enabled or self.config.web.enabled:
-            try:
-                import importlib
-                _mod = importlib.import_module("vireon_lab.reference_providers.clinical.closed_loop")
-                NSPCryptographicWrapper = getattr(_mod, 'NSPCryptographicWrapper')
-            except ImportError:
-                NSPCryptographicWrapper = None
-            self.nsp_wrapper = NSPCryptographicWrapper(simulate_latency_ms=1.5)
-
-        # 6.6 Firmware Emulation
-        try:
-            import importlib
-            _mod = importlib.import_module("vireon_lab.reference_providers.clinical.closed_loop")
-            CortexMStub = getattr(_mod, 'CortexMStub')
-        except ImportError:
-            CortexMStub = None
-        self.emulator = CortexMStub()
-        self.fw_monitor = self.registry.create("security", "fw_monitor", emulator=self.emulator)
-
-        # 6.7 P300 Leakage Analyzer
-        self.p300_analyzer = self.registry.create("security", "p300_analyzer")
-
-        # 6.8 End-to-End Encryption (E2EE)
-        self.e2ee_channel = self.registry.create("security", "e2ee_channel")
-
-        # 6.9 Neuro-Biometric Authentication Gate
-        # Profile specific to the generated synthetic data (alpha ~ 10Hz)
-        self.biometric_gate = self.registry.create("security", "biometric_gate", authorized_profile={"alpha_peak_hz": 10.0})
-
-        # 6.10 Zero-Trust Architecture Policy Engine
-        if getattr(self.config.security, 'enable_zta', False):
-            self.zta_engine = self.registry.create("security", "zta_engine", thresholds=getattr(self.config.security, 'zta_thresholds', {}))
+        # 6. Security layer (IDS, IPS, BLE Guard, Crypto, Authentication, ZTA)
+        builder.setup_security()
 
         # 7. Web server & LSL
         if getattr(self.config.web, 'lsl_only', False):
@@ -248,12 +185,7 @@ class Coordinator:
             builder.setup_ble()
 
         # 8.5 Privacy Engine
-        self.privacy_filter = None
-        self.privacy_tracker = None
-        if self.config.privacy.enabled:
-            from vireon.runtime.privacy import DifferentialPrivacyFilter, PrivacyBudgetTracker
-            self.privacy_filter = DifferentialPrivacyFilter(epsilon=self.config.privacy.epsilon)
-            self.privacy_tracker = PrivacyBudgetTracker(max_epsilon=10.0)
+        builder.setup_privacy()
 
         from vireon.runtime.coordinator_callbacks import CoordinatorCallbacks
         self.callbacks = CoordinatorCallbacks(self)

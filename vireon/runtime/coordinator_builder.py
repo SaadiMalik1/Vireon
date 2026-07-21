@@ -66,8 +66,8 @@ class SimulationBuilder:
                 else:
                     try:
                         import importlib
-            _mod = importlib.import_module('vireon_lab.providers.clinical.closed_loop')
-            UncontrolledStimulationAttack = getattr(_mod, 'UncontrolledStimulationAttack')
+                        _mod = importlib.import_module('vireon_lab.providers.clinical.closed_loop')
+                        UncontrolledStimulationAttack = getattr(_mod, 'UncontrolledStimulationAttack')
                     except ImportError:
                         UncontrolledStimulationAttack = None
                     leak = UncontrolledStimulationAttack(self.c.twin)
@@ -223,3 +223,81 @@ class SimulationBuilder:
             PairingFailureAttack(self.c.twin).apply(self.c.ble_client, self.c.ble_link)
         elif self.config.emulation.ble_attack == "mtu_abuse" and not self.config.security.enabled:
             MTUAbuseAttack(self.c.twin, abnormal_mtu=5).apply(self.c.ble_client, self.c.ble_link)
+
+    def setup_security(self):
+        """Configure security features (IDS, IPS, BLE guard, etc)."""
+        if self.config.security.enabled or self.config.web.enabled:
+            print("[VIREON] Initializing Neuro Security Layer (IDS/IPS Active)...")
+            self.c.ids = self.c.registry.create(
+                "security", "ids",
+                twin=self.c.twin, event_bus=self.c.event_bus,
+                rms_high_threshold=self.config.security.rms_high_threshold,
+                rms_low_threshold=self.config.security.rms_low_threshold,
+                beta_power_threshold=self.config.security.beta_power_threshold,
+                seed=self.config.seed
+            )
+            self.c.ips = self.c.registry.create(
+                "security", "ips",
+                twin=self.c.twin, ids=self.c.ids, event_bus=self.c.event_bus,
+                max_stimulation_amplitude_ma=self.config.security.max_stimulation_amplitude_ma
+            )
+            self.c.link_guard = self.c.registry.create("security", "ble_guard", twin=self.c.twin, event_bus=self.c.event_bus)
+
+        if self.config.security.nsp_enabled or self.config.web.enabled:
+            try:
+                import importlib
+                _mod = importlib.import_module("vireon_lab.reference_providers.clinical.closed_loop")
+                NSPCryptographicWrapper = getattr(_mod, 'NSPCryptographicWrapper')
+            except ImportError:
+                NSPCryptographicWrapper = None
+            if NSPCryptographicWrapper:
+                self.c.nsp_wrapper = NSPCryptographicWrapper(simulate_latency_ms=1.5)
+
+        try:
+            import importlib
+            _mod = importlib.import_module("vireon_lab.reference_providers.clinical.closed_loop")
+            CortexMStub = getattr(_mod, 'CortexMStub')
+        except ImportError:
+            CortexMStub = None
+        if CortexMStub:
+            self.c.emulator = CortexMStub()
+            self.c.fw_monitor = self.c.registry.create("security", "fw_monitor", emulator=self.c.emulator)
+
+        self.c.p300_analyzer = self.c.registry.create("security", "p300_analyzer")
+        self.c.e2ee_channel = self.c.registry.create("security", "e2ee_channel")
+        self.c.biometric_gate = self.c.registry.create("security", "biometric_gate", authorized_profile={"alpha_peak_hz": 10.0})
+
+        if getattr(self.config.security, 'enable_zta', False):
+            self.c.zta_engine = self.c.registry.create("security", "zta_engine", thresholds=getattr(self.config.security, 'zta_thresholds', {}))
+
+    def setup_privacy(self):
+        """Configure privacy filters and trackers."""
+        self.c.privacy_filter = None
+        self.c.privacy_tracker = None
+        if self.config.privacy.enabled:
+            from vireon.runtime.privacy import DifferentialPrivacyFilter, PrivacyBudgetTracker
+            self.c.privacy_filter = DifferentialPrivacyFilter(epsilon=self.config.privacy.epsilon)
+            self.c.privacy_tracker = PrivacyBudgetTracker(max_epsilon=10.0)
+
+    def setup_clinical(self):
+        """Configure clinical simulation components."""
+        try:
+            import importlib
+            _mod = importlib.import_module("vireon_lab.reference_providers.clinical.closed_loop")
+            ClosedLoopSimulator = getattr(_mod, "ClosedLoopSimulator")
+        except ImportError:
+            ClosedLoopSimulator = None
+            
+        if ClosedLoopSimulator:
+            self.c.clinical_sim = ClosedLoopSimulator(self.c.twin)
+            
+        if self.config.emulation.dbs_mode or self.config.web.enabled:
+            print("[VIREON] Initializing Virtual DBS Controller...")
+            try:
+                import importlib
+                _mod = importlib.import_module("vireon_lab.reference_providers.clinical.closed_loop")
+                ClosedLoopDBSController = getattr(_mod, 'ClosedLoopDBSController')
+            except ImportError:
+                ClosedLoopDBSController = None
+            if ClosedLoopDBSController:
+                self.c.dbs_controller = ClosedLoopDBSController(self.c.twin)

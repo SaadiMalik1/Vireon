@@ -77,6 +77,10 @@ class ImpedanceSpikeAttack(ISignalModifier):
                 # Update impedance in digital twin to spike value
                 if hasattr(state_store, "set"):
                     state_store.set(f"impedance_ch{ch}", self.spike_value, source="attack_engine")
+                elif hasattr(state_store, "update_impedance"):
+                    state_store.update_impedance(ch, self.spike_value)
+                elif hasattr(state_store, "electrode_impedances"):
+                    state_store.electrode_impedances[ch] = self.spike_value
 
                 # Zero out clean signal and inject powerline noise + high random noise
                 high_noise = (rng if rng is not None else np.random).normal(0, 30.0, size=num_samples)

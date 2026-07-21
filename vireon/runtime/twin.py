@@ -180,41 +180,17 @@ class DigitalTwin(ITwin):
         """Simulate battery discharge and voltage sag under load (running within lock).
         Uses Peukert's Law for non-linear capacity reduction under high load.
         """
-        # 1. Base current draw (mA)
-        base_ma = 5.0
-        
-        # 2. Stimulation current draw (mA)
-        stim_ma = 0.0
-        if self.stimulation_enabled and self.stimulation_amplitude_ma > 0:
-            stim_ma = self.stimulation_amplitude_ma * (self.stimulation_frequency_hz / 130.0) * 2.0
-            
-        total_ma = base_ma + stim_ma
-        
-        # Peukert's Law: Effective current = I^k (k ~ 1.2 for medical batteries)
-        peukert_k = 1.2
-        effective_ma = total_ma ** peukert_k
-        
-        # Calibrate so base_ma matches previous base_draw of 0.005 %/sec
-        capacity_scaling = 0.005 / (base_ma ** peukert_k)
-        
-        total_draw_pct = effective_ma * capacity_scaling * dt
-        self.battery_level = max(0.0, self.battery_level - total_draw_pct)
-        
-        # 3. Physically consistent battery model: V = OCV(SoC) - I * R_int
-        # OCV (Open Circuit Voltage) roughly 3.0V (0%) to 4.2V (100%)
-        ocv_v = 3.0 + 1.2 * (self.battery_level / 100.0)
-        
-        # Internal resistance (Ohms). Increases as SoC drops.
-        r_int_ohms = 0.5 + 2.0 * (1.0 - (self.battery_level / 100.0))
-        
-        # Voltage drop under load
-        v_drop = (total_ma / 1000.0) * r_int_ohms
-        effective_voltage_v = ocv_v - v_drop
-        
-        # Convert back to an "effective percentage" for the brownout logic (approx 3.15V cutoff ~ 5%)
-        effective_voltage_pct = max(0.0, (effective_voltage_v - 3.15) / 1.05 * 100.0)
-        
-        if effective_voltage_pct < 5.0 and self.connected:
+        from providers.power.battery import tick_battery
+        result = tick_battery(
+            battery_level=self.battery_level,
+            stimulation_enabled=self.stimulation_enabled,
+            stimulation_amplitude_ma=self.stimulation_amplitude_ma,
+            stimulation_frequency_hz=self.stimulation_frequency_hz,
+            dt=dt,
+        )
+        self.battery_level = result["battery_level"]
+
+        if result["brownout"] and self.connected:
             self.connected = False
             self.stimulation_enabled = False
             self.stimulation_amplitude_ma = 0.0
@@ -232,135 +208,23 @@ class DigitalTwin(ITwin):
     # --- State Accessors ---
 
     def get_state(self) -> Dict[str, Any]:
+        from vireon.runtime.twin_snapshot import build_state_dict
         with self._lock:
-            return {
-                "device_id": self.device_id,
-                "connected": self.connected,
-                "battery_level": round(self.battery_level, 2),
-                "firmware_version": self.firmware_version,
-                "sample_rate": self.sample_rate,
-                "num_channels": self.num_channels,
-                "electrode_impedances": {str(k): round(v, 2) for k, v in self.electrode_impedances.items()},
-                "stimulation_enabled": self.stimulation_enabled,
-                "stimulation_amplitude_ma": round(self.stimulation_amplitude_ma, 2),
-                "stimulation_frequency_hz": round(self.stimulation_frequency_hz, 2),
-                "decoder_confidence": round(self.decoder_confidence, 2),
-                "clinical_alert_active": self.clinical_alert_active,
-                "clinical_status": self.clinical_status,
-                "hazard_state": self.hazard_state,
-                "iso_severity": self.iso_severity,
-                "tissue_damage_risk": self.tissue_damage_risk,
-                "clinical_action": self.clinical_action,
-                "dsm5_diagnosis": self.dsm5_diagnosis,
-                "diagnostic_cluster": self.diagnostic_cluster,
-                "niss_score": self.niss_score,
-                # Extended state
-                "temperature_celsius": round(self.temperature_celsius, 1),
-                "flash_utilization_pct": round(self.flash_utilization_pct, 1),
-                "memory_usage_pct": round(self.memory_usage_pct, 1),
-                "ble_pairing_state": self.ble_pairing_state,
-                "amplifier_gain": self.amplifier_gain,
-                "communication_sessions": self.communication_sessions,
-                "funnel_origin": self.funnel_origin,
-                "autonomic_pupil_dilation_mm": round(self.autonomic_pupil_dilation_mm, 2),
-                "sim_clock": round(self._sim_clock, 3),
-                "neural_coherence": round(self.neural_dynamics.coherence, 3),
-                "beta_power": round(self.neural_dynamics.beta_power, 2),
-            }
+            return build_state_dict(self)
 
     # --- Snapshot / Restore (for experiment reproducibility) ---
 
     def snapshot(self, include_history: bool = False) -> Dict[str, Any]:
-        """
-        Return a complete frozen state copy suitable for serialization.
-        Used to save/restore experiment states for reproducibility.
-        """
+        """Return a complete frozen state copy suitable for serialization."""
+        from vireon.runtime.twin_snapshot import create_snapshot
         with self._lock:
-            snap = {
-                "device_id": self.device_id,
-                "connected": self.connected,
-                "battery_level": self.battery_level,
-                "firmware_version": self.firmware_version,
-                "sample_rate": self.sample_rate,
-                "num_channels": self.num_channels,
-                "electrode_impedances": dict(self.electrode_impedances),
-                "stimulation_enabled": self.stimulation_enabled,
-                "stimulation_amplitude_ma": self.stimulation_amplitude_ma,
-                "stimulation_frequency_hz": self.stimulation_frequency_hz,
-                "decoder_confidence": self.decoder_confidence,
-                "clinical_alert_active": self.clinical_alert_active,
-                "clinical_status": self.clinical_status,
-                "hazard_state": self.hazard_state,
-                "iso_severity": self.iso_severity,
-                "tissue_damage_risk": self.tissue_damage_risk,
-                "clinical_action": self.clinical_action,
-                "dsm5_diagnosis": self.dsm5_diagnosis,
-                "diagnostic_cluster": self.diagnostic_cluster,
-                "niss_score": self.niss_score,
-                "temperature_celsius": self.temperature_celsius,
-                "flash_utilization_pct": self.flash_utilization_pct,
-                "memory_usage_pct": self.memory_usage_pct,
-                "ble_pairing_state": self.ble_pairing_state,
-                "amplifier_gain": self.amplifier_gain,
-                "communication_sessions": self.communication_sessions,
-                "funnel_origin": self.funnel_origin,
-                "autonomic_pupil_dilation_mm": self.autonomic_pupil_dilation_mm,
-                "fallback_mode_enabled": self.fallback_mode_enabled,
-                "fallback_mode_active": self.fallback_mode_active,
-                "sim_clock": self._sim_clock,
-                "neural_dynamics": self.neural_dynamics.get_state() if hasattr(self.neural_dynamics, 'get_state') else None,
-                "neural_coherence": self.neural_dynamics.coherence,
-                "beta_power": self.neural_dynamics.beta_power,
-            }
-            if include_history:
-                snap["history"] = list(self.history)
-            return snap
+            return create_snapshot(self, include_history=include_history)
 
     def restore(self, snap: Dict[str, Any]):
-        """
-        Restore state from a snapshot. Used for experiment replay.
-        """
+        """Restore state from a snapshot. Used for experiment replay."""
+        from vireon.runtime.twin_snapshot import apply_snapshot
         with self._lock:
-            self.device_id = snap.get("device_id", self.device_id)
-            self.connected = snap.get("connected", self.connected)
-            self.battery_level = snap.get("battery_level", self.battery_level)
-            self.firmware_version = snap.get("firmware_version", self.firmware_version)
-            self.sample_rate = snap.get("sample_rate", self.sample_rate)
-            self.num_channels = snap.get("num_channels", self.num_channels)
-            self.electrode_impedances = snap.get("electrode_impedances", self.electrode_impedances)
-            self.stimulation_enabled = snap.get("stimulation_enabled", self.stimulation_enabled)
-            self.stimulation_amplitude_ma = snap.get("stimulation_amplitude_ma", self.stimulation_amplitude_ma)
-            self.stimulation_frequency_hz = snap.get("stimulation_frequency_hz", self.stimulation_frequency_hz)
-            self.decoder_confidence = snap.get("decoder_confidence", self.decoder_confidence)
-            self.clinical_alert_active = snap.get("clinical_alert_active", self.clinical_alert_active)
-            self.clinical_status = snap.get("clinical_status", self.clinical_status)
-            self.hazard_state = snap.get("hazard_state", self.hazard_state)
-            self.iso_severity = snap.get("iso_severity", self.iso_severity)
-            self.tissue_damage_risk = snap.get("tissue_damage_risk", self.tissue_damage_risk)
-            self.clinical_action = snap.get("clinical_action", self.clinical_action)
-            self.dsm5_diagnosis = snap.get("dsm5_diagnosis", self.dsm5_diagnosis)
-            self.diagnostic_cluster = snap.get("diagnostic_cluster", self.diagnostic_cluster)
-            self.niss_score = snap.get("niss_score", self.niss_score)
-            self.temperature_celsius = snap.get("temperature_celsius", self.temperature_celsius)
-            self.flash_utilization_pct = snap.get("flash_utilization_pct", self.flash_utilization_pct)
-            self.memory_usage_pct = snap.get("memory_usage_pct", self.memory_usage_pct)
-            self.ble_pairing_state = snap.get("ble_pairing_state", self.ble_pairing_state)
-            self.amplifier_gain = snap.get("amplifier_gain", 24)
-            self.communication_sessions = snap.get("communication_sessions", 0)
-            self.funnel_origin = snap.get("funnel_origin", "Ring 4: Cortical")
-            self.autonomic_pupil_dilation_mm = snap.get("autonomic_pupil_dilation_mm", 4.0)
-            
-            self.fallback_mode_enabled = snap.get("fallback_mode_enabled", self.fallback_mode_enabled)
-            self.fallback_mode_active = snap.get("fallback_mode_active", self.fallback_mode_active)
-            if "neural_dynamics" in snap and snap["neural_dynamics"] is not None:
-                if hasattr(self.neural_dynamics, 'restore_state'):
-                    self.neural_dynamics.restore_state(snap["neural_dynamics"])
-                
-            # Keep history as deque
-            if "history" in snap:
-                self.history = deque(snap["history"], maxlen=1000)
-                
-            self._sim_clock = snap.get("sim_clock", self._sim_clock)
+            apply_snapshot(self, snap)
 
     # --- State Mutators ---
 
