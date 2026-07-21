@@ -134,7 +134,8 @@ pub fn parse(tokens: Vec<Token>) -> Result<Ast, ForgeError> {
                             "JUMP_IF addr and val must fit in 8 bits".into(),
                         ));
                     }
-                    statements.push(Statement::JumpIf(addr as u8, val as u8, target as u16));
+                    statements.push(Statement::JumpIf(addr as u8, val as u8, target));
+
                 } else {
                     return Err(ForgeError::ParserError(
                         "Expected address, value, and target after JUMP_IF".into(),

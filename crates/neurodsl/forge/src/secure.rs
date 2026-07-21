@@ -62,18 +62,13 @@ pub fn verify_ast(ast: &Ast) -> Result<(), ForgeError> {
                 }
                 loop_depth -= 1;
             }
-            Statement::JumpIf(_, _, target) => {
-                // Since target is currently an absolute offset and can't easily be validated at AST level
-                // (before codegen sizes are known), we just do a rudimentary check.
-                // A better approach would be to calculate bytecode size per statement.
-                // For now, limit jump targets to reasonable boundaries.
-                if *target > 4096 {
-                    return Err(ForgeError::ParserError(format!(
-                        "JUMP_IF target {} is out of realistic program bounds",
-                        target
-                    )));
-                }
+            Statement::JumpIf(_, _, target) if *target > 4096 => {
+                return Err(ForgeError::ParserError(format!(
+                    "JUMP_IF target {} is out of realistic program bounds",
+                    target
+                )));
             }
+
             _ => {}
         }
     }
