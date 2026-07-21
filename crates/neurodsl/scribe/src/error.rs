@@ -36,4 +36,3 @@ impl fmt::Display for ScribeError {
 }
 
 impl std::error::Error for ScribeError {}
-

@@ -30,7 +30,6 @@ impl Default for PyScribe {
 
 #[pymethods]
 impl PyScribe {
-
     #[new]
     pub fn new() -> Self {
         PyScribe {

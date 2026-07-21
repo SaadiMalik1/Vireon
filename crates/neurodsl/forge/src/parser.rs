@@ -135,7 +135,6 @@ pub fn parse(tokens: Vec<Token>) -> Result<Ast, ForgeError> {
                         ));
                     }
                     statements.push(Statement::JumpIf(addr as u8, val as u8, target));
-
                 } else {
                     return Err(ForgeError::ParserError(
                         "Expected address, value, and target after JUMP_IF".into(),

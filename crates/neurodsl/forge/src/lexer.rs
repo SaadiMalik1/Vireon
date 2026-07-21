@@ -64,4 +64,3 @@ pub fn lex(source: &str) -> Result<Vec<Token>, ForgeError> {
 
     Ok(tokens)
 }
-
