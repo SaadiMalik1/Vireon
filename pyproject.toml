@@ -2,18 +2,10 @@
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["vireon*", "providers*"]
-exclude = ["tests*", "experiments*", "threat_models*", "knowledge*", "docs*", "dashboard*", "scripts*", "scenarios*"]
-
-[tool.setuptools.package-data]
-"*" = ["*.json", "*.yaml", "*.yml", "*.txt", "*.md"]
-
 [project]
 name = "vireon"
-version = "1.0.0"
-description = "Vendor-neutral neurotechnology validation framework."
+version = "1.1.0"
+description = "Vendor-neutral neurotechnology runtime and security validation framework."
 readme = "README.md"
 license = {text = "Apache-2.0"}
 requires-python = ">=3.10"
@@ -22,7 +14,7 @@ authors = [
 ]
 keywords = ["neurosecurity", "BCI", "EEG", "DBS", "simulation", "digital-twin", "security"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
     "Topic :: Scientific/Engineering :: Medical Science Apps.",
     "Topic :: Security",
@@ -32,35 +24,35 @@ classifiers = [
 ]
 dependencies = [
     "pydantic>=2.8.0",
-    "cryptography>=48.0.1",
-    "click>=8.3.3",
-    "websockets~=11.0",
-    "pyyaml~=6.0.0",
+    "click>=8.3.0",
+    "pyyaml>=6.0.0",
     "numpy>=1.24.0",
-    "mcp>=1.0.0"
+    "cryptography>=48.0.1",
 ]
 
 [project.optional-dependencies]
+crypto = ["cryptography>=48.0.1"]
+mcp = ["mcp>=1.0.0"]
 dev = [
     "pytest>=9.0.3",
     "pytest-asyncio>=0.23.8",
     "pytest-cov>=4.1.0",
     "mypy>=1.10.0",
+    "ruff>=0.4.0",
+    "maturin>=1.5.0",
 ]
 docs = [
-    "mkdocs-material~=9.0.0",
+    "mkdocs-material>=9.0.0",
     "mkdocstrings[python]>=0.24.0",
 ]
 
 [project.scripts]
 vireon = "vireon.__main__:main"
 
-[project.entry-points."vireon.plugins"]
-# Plugin system entry point
-
-[project.urls]
-Repository = "https://github.com/SaadiMalik1/Vireon.git"
-Documentation = "https://vireon.readthedocs.io"
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["vireon*"]
+exclude = ["tests*", "threat_models*", "docs*", "crates*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -70,10 +62,10 @@ addopts = "-v --tb=short"
 [tool.ruff]
 line-length = 120
 target-version = "py310"
-exclude = [".venv", "venv", "__pycache__"]
+exclude = [".venv", "venv", "__pycache__", "target"]
 ignore = ["E402"]
 
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.11"
 ignore_missing_imports = true
-strict_optional = false
+strict_optional = true

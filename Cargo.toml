@@ -1,0 +1,7 @@
+[workspace]
+members = [
+    "crates/neurodsl/forge",
+    "crates/neurodsl/scribe",
+    "crates/neurodsl/python_ext",
+]
+resolver = "2"

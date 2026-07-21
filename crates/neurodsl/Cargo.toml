@@ -1,0 +1,7 @@
+[workspace]
+members = [
+    "forge",
+    "scribe",
+    "python_ext"
+]
+resolver = "2"

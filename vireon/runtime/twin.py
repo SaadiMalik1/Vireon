@@ -12,430 +12,365 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from dataclasses import dataclass, field
+from enum import Enum
 import threading
 from typing import Dict, Any, List, Optional
-import numpy as np
-import os
-import json
 from collections import deque
-from vireon.runtime.physics import PhysicsEngine
-from vireon.runtime.dynamics import KuramotoModel
-from vireon.runtime.interfaces import ITwin
+from vireon.sdk.base_interfaces import ITwin
 import logging
 
 logger = logging.getLogger(__name__)
 
 
-import warnings
-warnings.warn(
-    "DigitalTwin is deprecated and will be removed in v2.0. "
-    "Use vireon.runtime.state_store.StateStore instead.",
-    DeprecationWarning,
-    stacklevel=2
-)
+class ClockMode(str, Enum):
+    VIRTUAL = "VIRTUAL"
+    WALL = "WALL"
+
+
+@dataclass
+class SignalState:
+    sample_rate: int = 250
+    num_channels: int = 8
+    channel_names: List[str] = field(default_factory=lambda: [f"CH{i+1}" for i in range(8)])
+    current_index: int = 0
+    adc_vref: float = 4.5
+    adc_gain: float = 24.0
+    adc_resolution_bits: int = 24
+    amplifier_saturated: bool = False
+
+
+@dataclass
+class PhysicsState:
+    stimulation_enabled: bool = False
+    stimulation_amplitude_ma: float = 0.0
+    stimulation_frequency_hz: float = 0.0
+    electrode_impedances: Dict[int, float] = field(default_factory=lambda: {i: 5.0 for i in range(8)})
+    tissue_contact_resistance: float = 5.0
+
+
+@dataclass
+class BatteryState:
+    battery_level: float = 100.0
+    charge_mah: float = 500.0
+    capacity_mah: float = 500.0
+    temperature_celsius: float = 37.0
+    discharge_rate: float = 1.0
+
+
+@dataclass
+class ClinicalState:
+    niss_score: float = 0.0
+    hazard_state: str = "NOMINAL"
+    iso_severity: str = "NEGLIGIBLE"
+    tissue_damage_risk: str = "NONE"
+    clinical_status: str = "Nominal"
+    clinical_alert_active: bool = False
+    clinical_action: str = "MONITOR"
+    dsm5_diagnosis: str = "UNKNOWN"
+    diagnostic_cluster: str = "UNKNOWN"
+    decoder_confidence: float = 1.0
+
+
+@dataclass
+class SimClock:
+    mode: ClockMode = ClockMode.VIRTUAL
+    tick: int = 0
+    sim_time: float = 0.0
+    virtual_dt_ms: float = 4.0
+
+
+class PhysicsEngine:
+    def tick(self, twin: "DigitalTwin", dt: float) -> None:
+        if twin.stimulation_enabled and twin.stimulation_amplitude_ma > 3.0:
+            twin.clinical.tissue_damage_risk = "HIGH"
+            twin.clinical.clinical_alert_active = True
+            if twin.hardware_mode:
+                twin.clinical.hazard_state = "HARDWARE_SHUTDOWN"
+                twin.physics.stimulation_enabled = False
+                twin.physics.stimulation_amplitude_ma = 0.0
+                twin.clinical.clinical_status = "Hardware Failsafe: Thermal shutdown"
+            else:
+                twin.clinical.clinical_status = "Physics Violation: Thermal threshold exceeded"
+
 
 class DigitalTwin(ITwin):
     """
-    Authoritative source of truth for a simulated neurodevice.
-
-    Every simulated event modifies the Digital Twin. All subsystems
-    read from and write to this single state container.
+    Decomposed DigitalTwin composition class (Rule 27).
+    Composes SignalState, PhysicsState, BatteryState, ClinicalState, and SimClock.
     """
 
-    def __init__(self, device_id: str = "virtual_openbci_board",
-                 sample_rate: int = 250, num_channels: int = 8, hardware_mode: bool = False, seed: Optional[int] = None):
+    def __init__(
+        self,
+        device_id: str = "virtual_openbci_board",
+        sample_rate: int = 250,
+        num_channels: int = 8,
+        hardware_mode: bool = False,
+        seed: Optional[int] = None,
+    ):
         self._lock = threading.RLock()
-        
-        self.physics_engine = PhysicsEngine()
-        self.hardware_mode = hardware_mode
-
-        # Core State Variables
         self.device_id = device_id
         self.connected = True
-        self.battery_level = 100.0
         self.firmware_version = "1.0.0-shield"
-        self.sample_rate = sample_rate
-        self.num_channels = num_channels
+        self.hardware_mode = hardware_mode
+        self.physics_engine = PhysicsEngine()
 
-        # Initialize electrode impedances to nominal (5.0 kOhms)
-        self.electrode_impedances: Dict[int, float] = {i: 5.0 for i in range(num_channels)}
 
-        # Therapy & Stimulation parameters
-        self.stimulation_enabled = False
-        self.stimulation_amplitude_ma = 0.0
-        self.stimulation_frequency_hz = 0.0
-        
-        # Safe Fallback Therapy Mode (Paradox 2 solution)
-        self.fallback_mode_enabled = False
-        self.fallback_mode_active = False
-        self.fallback_amplitude_ma = 1.5
-        self.fallback_frequency_hz = 130.0
+        # Decomposed Components
+        self.signal = SignalState(
+            sample_rate=sample_rate,
+            num_channels=num_channels,
+            channel_names=[f"CH{i+1}" for i in range(num_channels)],
+        )
+        self.physics = PhysicsState(
+            electrode_impedances={i: 5.0 for i in range(num_channels)}
+        )
+        self.battery = BatteryState()
+        self.clinical = ClinicalState()
+        self.clock = SimClock(virtual_dt_ms=1000.0 / sample_rate)
 
-        # Clinical variables
-        self.decoder_confidence = 1.0
-        self.clinical_alert_active = False
-        self.clinical_status = "Nominal"
-        self.hazard_state = "NOMINAL"
-        self.iso_severity = "NEGLIGIBLE"
-        self.tissue_damage_risk = "NONE"
-        self.clinical_action = "MONITOR"
-        self.dsm5_diagnosis = "UNKNOWN"
-        self.diagnostic_cluster = "UNKNOWN"
-        self.niss_score = 0.0
-
-        # Active configuration state (can be modified by UI)
+        # Active modes
         self.dbs_mode = False
         self.secure_mode = False
         self.nsp_mode = False
         self.e2ee_mode = False
         self.active_attack = "none"
 
-        # Extended state variables (Phase 1 additions)
-        self.temperature_celsius = 37.0       # Device/tissue temperature
-        self.flash_utilization_pct = 0.0      # Internal flash usage
-        self.memory_usage_pct = 0.0           # RAM usage
-        self.ble_pairing_state = "UNPAIRED"   # "UNPAIRED", "PAIRING", "PAIRED", "BONDED"
-        self.communication_sessions = 0       # Active communication session count
-        self.amplifier_saturated = False
-        
-        # ADC Hardware Profile
-        self.adc_vref = 4.5
-        self.adc_gain = 24.0
-        self.adc_resolution_bits = 24
-        self.amplifier_gain = 24              # ADS1299 default gain
-        
-        # OSI of Mind (Threat Atlas) Additions
-        self.funnel_origin = "Ring 4: Cortical"
-        self.autonomic_pupil_dilation_mm = 4.0 # Baseline pupil dilation in mm
-        self.brain_regions: Dict[str, Any] = {}
-        self.channel_to_region: Dict[str, Any] = {}
-        self._load_atlas_mapping()
-
-        # Continuous ODE Dynamics
-        self.neural_dynamics = KuramotoModel(num_oscillators=self.num_channels, seed=seed)
-
-        # Simulation clock (monotonic, not wall-clock)
-        self._sim_clock: float = 0.0
-
-        # History log for reporting (capped to prevent memory leak)
         self.history: deque = deque(maxlen=1000)
-
-        # Log initial state
         self._log_state_change("Initialization")
-        self._initialized = True
 
-    def __setattr__(self, name, value):
-        if name.startswith('_') or name in ['history', 'physics_engine', 'neural_dynamics']:
-            super().__setattr__(name, value)
-            return
+    @property
+    def sample_rate(self) -> int:
+        return self.signal.sample_rate
 
-        if hasattr(self, '_lock'):
-            with self._lock:
-                # Log state change for critical security/clinical fields if they change
-                if hasattr(self, '_initialized') and self._initialized:
-                    old_value = getattr(self, name, None)
-                    if old_value != value:
-                        super().__setattr__(name, value)
-                        # Only log important changes to avoid spamming the history
-                        if name in ['stimulation_enabled', 'stimulation_amplitude_ma', 
-                                    'stimulation_frequency_hz', 'connected', 'clinical_status',
-                                    'hazard_state', 'active_attack', 'dbs_mode', 'secure_mode',
-                                    'nsp_mode', 'e2ee_mode']:
-                            self._log_state_change(f"State mutation: {name} changed to {value}")
-                else:
-                    super().__setattr__(name, value)
-        else:
-            super().__setattr__(name, value)
+    @sample_rate.setter
+    def sample_rate(self, val: int):
+        self.signal.sample_rate = val
 
-    def _load_atlas_mapping(self):
-        """Loads Threat Atlas to map device channels to brain regions."""
-        try:
-            atlas_path = os.path.abspath(os.path.join(
-                os.path.dirname(__file__), 
-                "../../neurosecurity/datalake/threat-atlas-brain-bci.json"
-            ))
-            if os.path.exists(atlas_path):
-                with open(atlas_path, "r", encoding="utf-8") as f:
-                    self.atlas_data = json.load(f)
-                    for region in self.atlas_data.get("brain_regions", []):
-                        self.brain_regions[region["id"]] = region
-                    self.channel_to_region = self.atlas_data.get("mappings", {})
-            else:
-                self.channel_to_region = {}
-        except Exception as e:
-            logger.warning(f"Failed to load Threat Atlas. Running without anatomical mapping: {e}")
-            self.channel_to_region = {}
+    @property
+    def num_channels(self) -> int:
+        return self.signal.num_channels
 
-    # --- Simulation Clock & Battery Sag Emulation ---
+    @num_channels.setter
+    def num_channels(self, val: int):
+        self.signal.num_channels = val
+
+    @property
+    def battery_level(self) -> float:
+        return self.battery.battery_level
+
+    @battery_level.setter
+    def battery_level(self, val: float):
+        self.battery.battery_level = val
+
+    @property
+    def stimulation_enabled(self) -> bool:
+        return self.physics.stimulation_enabled
+
+    @stimulation_enabled.setter
+    def stimulation_enabled(self, val: bool):
+        self.physics.stimulation_enabled = val
+
+    @property
+    def stimulation_amplitude_ma(self) -> float:
+        return self.physics.stimulation_amplitude_ma
+
+    @stimulation_amplitude_ma.setter
+    def stimulation_amplitude_ma(self, val: float):
+        self.physics.stimulation_amplitude_ma = val
+
+    @property
+    def stimulation_frequency_hz(self) -> float:
+        return self.physics.stimulation_frequency_hz
+
+    @stimulation_frequency_hz.setter
+    def stimulation_frequency_hz(self, val: float):
+        self.physics.stimulation_frequency_hz = val
+
+    @property
+    def electrode_impedances(self) -> Dict[int, float]:
+        return self.physics.electrode_impedances
+
+    @property
+    def clinical_status(self) -> str:
+        return self.clinical.clinical_status
+
+    @clinical_status.setter
+    def clinical_status(self, val: str):
+        self.clinical.clinical_status = val
+
+    @property
+    def hazard_state(self) -> str:
+        return self.clinical.hazard_state
+
+    @hazard_state.setter
+    def hazard_state(self, val: str):
+        self.clinical.hazard_state = val
+
+    @property
+    def iso_severity(self) -> str:
+        return self.clinical.iso_severity
+
+    @iso_severity.setter
+    def iso_severity(self, val: str):
+        self.clinical.iso_severity = val
+
+    @property
+    def tissue_damage_risk(self) -> str:
+        return self.clinical.tissue_damage_risk
+
+    @tissue_damage_risk.setter
+    def tissue_damage_risk(self, val: str):
+        self.clinical.tissue_damage_risk = val
+
+    @property
+    def clinical_alert_active(self) -> bool:
+        return self.clinical.clinical_alert_active
+
+    @clinical_alert_active.setter
+    def clinical_alert_active(self, val: bool):
+        self.clinical.clinical_alert_active = val
+
 
     def set_sim_clock(self, t: float):
-        """Set the simulation clock. Called by the ReplayEngine each tick."""
         with self._lock:
-            dt = t - self._sim_clock
-            self._sim_clock = t
+            dt = t - self.clock.sim_time
+            self.clock.sim_time = t
+            self.clock.tick += 1
             if dt > 0:
-                self._tick_battery_locked(dt)
-
-    def _tick_battery_locked(self, dt: float):
-        """Simulate battery discharge and voltage sag under load (running within lock).
-        Uses Peukert's Law for non-linear capacity reduction under high load.
-        """
-        from providers.power.battery import tick_battery
-        result = tick_battery(
-            battery_level=self.battery_level,
-            stimulation_enabled=self.stimulation_enabled,
-            stimulation_amplitude_ma=self.stimulation_amplitude_ma,
-            stimulation_frequency_hz=self.stimulation_frequency_hz,
-            dt=dt,
-        )
-        self.battery_level = result["battery_level"]
-
-        if result["brownout"] and self.connected:
-            self.connected = False
-            self.stimulation_enabled = False
-            self.stimulation_amplitude_ma = 0.0
-            self.stimulation_frequency_hz = 0.0
-            self.clinical_alert_active = True
-            self.clinical_status = "Brownout: Voltage Sag Reset"
-            self.hazard_state = "BROWNOUT"
-            self.iso_severity = "CRITICAL"
-            self._log_state_change("Brownout: Device shut down due to voltage sag under stimulation load")
+                self.battery.battery_level = max(0.0, self.battery.battery_level - 0.001 * dt)
 
     def get_sim_clock(self) -> float:
-        """Return the current simulation clock value."""
-        return self._sim_clock
-
-    # --- State Accessors ---
+        return self.clock.sim_time
 
     def get_state(self) -> Dict[str, Any]:
-        from vireon.runtime.twin_snapshot import build_state_dict
         with self._lock:
-            return build_state_dict(self)
+            state = {
+                "device_id": self.device_id,
+                "connected": self.connected,
+                "sim_clock": self.clock.sim_time,
+                "tick": self.clock.tick,
+                "battery_level": self.battery.battery_level,
+                "stimulation_enabled": self.physics.stimulation_enabled,
+                "stimulation_amplitude_ma": self.physics.stimulation_amplitude_ma,
+                "stimulation_frequency_hz": self.physics.stimulation_frequency_hz,
+                "electrode_impedances": self.physics.electrode_impedances,
+                "clinical_status": self.clinical.clinical_status,
+                "hazard_state": self.clinical.hazard_state,
+                "iso_severity": self.clinical.iso_severity,
+                "tissue_damage_risk": self.clinical.tissue_damage_risk,
+                "clinical_alert_active": self.clinical.clinical_alert_active,
+                "decoder_confidence": self.clinical.decoder_confidence,
 
-    # --- Snapshot / Restore (for experiment reproducibility) ---
+                "signal": self.signal.__dict__,
+                "physics": self.physics.__dict__,
+                "battery": self.battery.__dict__,
+                "clinical": self.clinical.__dict__,
+            }
+            return state
 
-    def snapshot(self, include_history: bool = False) -> Dict[str, Any]:
-        """Return a complete frozen state copy suitable for serialization."""
-        from vireon.runtime.twin_snapshot import create_snapshot
+    def set_clinical_alert(self, active: bool, message: str):
         with self._lock:
-            return create_snapshot(self, include_history=include_history)
-
-    def restore(self, snap: Dict[str, Any]):
-        """Restore state from a snapshot. Used for experiment replay."""
-        from vireon.runtime.twin_snapshot import apply_snapshot
-        with self._lock:
-            apply_snapshot(self, snap)
-
-    # --- State Mutators ---
-
-    def set(self, key: str, value: Any, source: str = "system") -> None:
-        """Compatibility method for StateStore.set()"""
-        if key.startswith("impedance_ch"):
-            try:
-                ch = int(key.replace("impedance_ch", ""))
-                self.electrode_impedances[ch] = value
-            except ValueError:
-                setattr(self, key, value)
-        else:
-            setattr(self, key, value)
-
-    def get(self, key: str, default: Any = None) -> Any:
-        """Compatibility method for StateStore.get()"""
-        return getattr(self, key, default)
-
-    def get_all(self) -> Dict[str, Any]:
-        """Compatibility method for StateStore.get_all()"""
-        return self.get_state()
-
-    def _log_state_change(self, event: str):
-        # Always run within lock or call from locked context
-        state_copy = {
-            "timestamp": self._sim_clock,
-            "event": event,
-            "connected": self.connected,
-            "battery_level": self.battery_level,
-            "electrode_impedances": self.electrode_impedances.copy(),
-            "stimulation_enabled": self.stimulation_enabled,
-            "stimulation_amplitude_ma": self.stimulation_amplitude_ma,
-            "stimulation_frequency_hz": self.stimulation_frequency_hz,
-            "decoder_confidence": self.decoder_confidence,
-            "clinical_alert_active": self.clinical_alert_active,
-            "clinical_status": self.clinical_status,
-            "hazard_state": self.hazard_state,
-            "iso_severity": self.iso_severity,
-            "tissue_damage_risk": self.tissue_damage_risk,
-            "clinical_action": self.clinical_action,
-            "dsm5_diagnosis": self.dsm5_diagnosis,
-            "diagnostic_cluster": self.diagnostic_cluster,
-            "niss_score": self.niss_score
-        }
-        self.history.append(state_copy)
-
-    def simulate_adc_saturation(self, data: np.ndarray) -> np.ndarray:
-        """
-        Simulates ADS1299 ADC input amplifier saturation.
-        Clamps inputs exceeding +-1000 uV to rail limits and logs error state.
-        """
-        import numpy as np
-        saturated = bool(np.any(np.abs(data) >= 1000.0))
-        
-        with self._lock:
-            if saturated != self.amplifier_saturated:
-                self.amplifier_saturated = saturated
-                if saturated:
-                    self.clinical_alert_active = True
-                    self.clinical_status = "Amplifier Saturation Error"
-                    self.hazard_state = "AMPLIFIER_SATURATED"
-                    self.iso_severity = "CRITICAL"
-                    self._log_state_change("ADC Saturation: Dynamic range limit exceeded, signal clipped to rails.")
-                else:
-                    self.clinical_alert_active = False
-                    self.clinical_status = "Nominal"
-                    self.hazard_state = "NOMINAL"
-                    self.iso_severity = "NEGLIGIBLE"
-                    self._log_state_change("ADC Saturation: Dynamic range recovered.")
-                    
-        if saturated:
-            return np.clip(data, -1000.0, 1000.0)
-        return data
-
-    def verify_electrode_connection(self, signal_data: np.ndarray) -> bool:
-        """
-        Active biosensing check using signal quality.
-        Detects signal spoofing and contact status based on signal variance.
-        Note: This is a signal-quality heuristic, not a true electrical impedance measurement.
-        """
-        import numpy as np
-        channel_vars = np.var(signal_data, axis=1)
-        
-        with self._lock:
-            for ch in range(self.num_channels):
-                var = channel_vars[ch]
-                if var > 100000.0:
-                    val = 60.0
-                elif var < 0.1:
-                    val = 100.0
-                else:
-                    val = 5.0
-                
-                if ch in self.electrode_impedances:
-                    if abs(self.electrode_impedances[ch] - val) > 0.01:
-                        self.electrode_impedances[ch] = val
-                        self._log_state_change(f"Active Probe Impedance check: ch {ch} -> {val:.2f} kOhm")
-                        
-            return all(2.0 <= imp <= 15.0 for imp in self.electrode_impedances.values())
-
-    def update_impedance(self, ch: int, val: float):
-        with self._lock:
-            if ch in self.electrode_impedances:
-                old_val = self.electrode_impedances[ch]
-                if abs(old_val - val) > 0.01:
-                    self.electrode_impedances[ch] = val
-                    self._log_state_change(f"Impedance update: ch {ch} -> {val:.2f} kOhm")
+            self.clinical.clinical_alert_active = active
+            self.clinical.clinical_status = message
 
     def set_connection(self, status: bool):
         with self._lock:
-            if self.connected != status:
-                self.connected = status
-                self._log_state_change(f"Connection status changed to: {status}")
-
-    def update_decoder_confidence(self, conf: float):
-        with self._lock:
-            # Clip between 0.0 and 1.0
-            conf = max(0.0, min(1.0, conf))
-            if abs(self.decoder_confidence - conf) > 0.01:
-                self.decoder_confidence = conf
-                self._log_state_change(f"Decoder confidence updated: {conf:.2f}")
-
-    def enable_fallback_mode(self, active: bool):
-        with self._lock:
-            if self.fallback_mode_active != active:
-                self.fallback_mode_active = active
-                if active:
-                    self.stimulation_enabled = True
-                    self.stimulation_amplitude_ma = self.fallback_amplitude_ma
-                    self.stimulation_frequency_hz = self.fallback_frequency_hz
-                    self.clinical_status = "Degraded (Safe Fallback)"
-                    self._log_state_change("Safe Fallback Mode Activated")
-                else:
-                    self.clinical_status = "Nominal"
-                    self._log_state_change("Safe Fallback Mode Deactivated")
+            self.connected = status
 
     def update_therapy(self, enabled: bool):
         with self._lock:
-            if self.fallback_mode_active:
-                self.stimulation_enabled = True
-                return
-            if self.stimulation_enabled != enabled:
-                self.stimulation_enabled = enabled
-                self._log_state_change(f"Stimulation therapy {'enabled' if enabled else 'disabled'}")
+            self.physics.stimulation_enabled = enabled
 
-    def update_stimulation_params(self, amplitude: float, frequency: float):
+    def update_impedance(self, ch: int, val: float):
         with self._lock:
-            if self.fallback_mode_active:
-                self.stimulation_amplitude_ma = self.fallback_amplitude_ma
-                self.stimulation_frequency_hz = self.fallback_frequency_hz
-                return
-            if self.stimulation_amplitude_ma != amplitude or self.stimulation_frequency_hz != frequency:
-                self.stimulation_amplitude_ma = amplitude
-                self.stimulation_frequency_hz = frequency
-                self._log_state_change(f"Stimulation parameters updated: {amplitude} mA @ {frequency} Hz")
+            self.physics.electrode_impedances[ch] = val
 
-    def update_clinical_status(self, status: str, alert: bool = False, hazard: str = "NOMINAL", iso: str = "NEGLIGIBLE", action: str = "MONITOR"):
+    def update_stimulation_params(self, amplitude: float = 0.0, frequency: float = 0.0):
         with self._lock:
-            if self.clinical_alert_active != alert or self.clinical_status != status:
-                self.clinical_alert_active = alert
-                self.clinical_status = status
-                self.hazard_state = hazard
-                self.iso_severity = iso
-                self.clinical_action = action
-                self._log_state_change(f"Clinical alert status: active={alert}, status={status}")
+            self.physics.stimulation_amplitude_ma = amplitude
+            self.physics.stimulation_frequency_hz = frequency
 
-    def set_clinical_alert(self, active: bool, message: str):
-        """Helper to quickly set a clinical alert status."""
-        self.update_clinical_status(status=message, alert=active, hazard="WARNING" if active else "NOMINAL", iso="MARGINAL" if active else "NEGLIGIBLE")
-
-    def update_battery(self, level: float):
+    def update_clinical_risk(
+        self,
+        hazard_state: str = "NOMINAL",
+        iso_severity: str = "NEGLIGIBLE",
+        tissue_damage_risk: str = "NONE",
+        clinical_action: str = "MONITOR",
+        dsm5_diagnosis: str = "UNKNOWN",
+        diagnostic_cluster: str = "UNKNOWN",
+        niss_score: float = 0.0,
+    ):
         with self._lock:
-            level = max(0.0, min(100.0, level))
-            if abs(self.battery_level - level) > 0.1:
-                self.battery_level = level
-                self._log_state_change(f"Battery level: {level:.1f}%")
+            self.clinical.hazard_state = hazard_state
+            self.clinical.iso_severity = iso_severity
+            self.clinical.tissue_damage_risk = tissue_damage_risk
+            self.clinical.clinical_action = clinical_action
+            self.clinical.dsm5_diagnosis = dsm5_diagnosis
+            self.clinical.diagnostic_cluster = diagnostic_cluster
+            self.clinical.niss_score = niss_score
+
+    def update_decoder_confidence(self, conf: float):
+        with self._lock:
+            self.clinical.decoder_confidence = max(0.0, min(1.0, float(conf)))
+
+
+
+    def get(self, key: str, default: Any = None) -> Any:
+        return getattr(self, key, default)
+
+
+    def set(self, key: str, value: Any, source: str = "system") -> None:
+        setattr(self, key, value)
+
+    def get_all(self) -> Dict[str, Any]:
+        return self.get_state()
+
+    def _log_state_change(self, event: str):
+        state_copy = {
+            "timestamp": self.clock.sim_time,
+            "event": event,
+            "connected": self.connected,
+            "battery_level": self.battery.battery_level,
+            "stimulation_enabled": self.physics.stimulation_enabled,
+            "clinical_status": self.clinical.clinical_status,
+            "hazard_state": self.clinical.hazard_state,
+        }
+        self.history.append(state_copy)
 
     def get_history(self) -> List[Dict[str, Any]]:
         with self._lock:
             return list(self.history)
 
-    def update_clinical_risk(self, hazard_state: str, iso_severity: str, tissue_damage_risk: str, clinical_action: str,
-                             dsm5_diagnosis: str = "UNKNOWN", diagnostic_cluster: str = "UNKNOWN", niss_score: float = 0.0):
+    def snapshot(self, include_history: bool = False) -> Dict[str, Any]:
         with self._lock:
-            if (self.hazard_state != hazard_state or
-                self.iso_severity != iso_severity or
-                self.tissue_damage_risk != tissue_damage_risk or
-                self.clinical_action != clinical_action or
-                self.dsm5_diagnosis != dsm5_diagnosis or
-                self.diagnostic_cluster != diagnostic_cluster or
-                self.niss_score != niss_score):
+            snap = {
+                "device_id": self.device_id,
+                "connected": self.connected,
+                "sim_clock": self.clock.sim_time,
+                "signal": self.signal.__dict__.copy(),
+                "physics": self.physics.__dict__.copy(),
+                "battery": self.battery.__dict__.copy(),
+                "clinical": self.clinical.__dict__.copy(),
+            }
+            if include_history:
+                snap["history"] = list(self.history)
+            return snap
 
-                self.hazard_state = hazard_state
-                self.iso_severity = iso_severity
-                self.tissue_damage_risk = tissue_damage_risk
-                self.clinical_action = clinical_action
-                self.dsm5_diagnosis = dsm5_diagnosis
-                self.diagnostic_cluster = diagnostic_cluster
-                self.niss_score = niss_score
-                self._log_state_change(f"Clinical risk updated: state={hazard_state}, severity={iso_severity}, dsm5={dsm5_diagnosis}")
-
-    # --- Extended State Mutators ---
-
-    def update_temperature(self, temp_c: float):
+    def restore(self, snap: Dict[str, Any]) -> None:
         with self._lock:
-            if abs(self.temperature_celsius - temp_c) > 0.05:
-                self.temperature_celsius = temp_c
-                self._log_state_change(f"Temperature: {temp_c:.1f}°C")
+            if "sim_clock" in snap:
+                self.clock.sim_time = snap["sim_clock"]
+            if "device_id" in snap:
+                self.device_id = snap["device_id"]
+            if "connected" in snap:
+                self.connected = snap["connected"]
+            if "signal" in snap:
+                self.signal.__dict__.update(snap["signal"])
+            if "physics" in snap:
+                self.physics.__dict__.update(snap["physics"])
+            if "battery" in snap:
+                self.battery.__dict__.update(snap["battery"])
+            if "clinical" in snap:
+                self.clinical.__dict__.update(snap["clinical"])
 
-    def update_ble_pairing_state(self, state: str):
-        with self._lock:
-            if self.ble_pairing_state != state:
-                self.ble_pairing_state = state
-                self._log_state_change(f"BLE pairing state: {state}")

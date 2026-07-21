@@ -1,0 +1,9 @@
+// Valid NeuroDSL Stimulation Protocol Example
+SET_AMP 50
+SET_FREQ 100
+SHAPE SQUARE 10
+LOOP_START 5
+    READ_SENSOR 1 0
+    WAIT 10
+LOOP_END
+END
