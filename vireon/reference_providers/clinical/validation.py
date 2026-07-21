@@ -18,6 +18,10 @@ import logging
 import math
 from pathlib import Path
 import numpy as np
+import importlib
+StateStore = importlib.import_module('vireon.runtime.state_store').StateStore
+EventBus = importlib.import_module('vireon.runtime.event_bus').EventBus
+
 from typing import Dict, List, Optional, Tuple, Any
 
 """
@@ -157,7 +161,6 @@ class ValidationRunner:
         return traces
 
     def validate_ids_on_edf(self, edf_path: Path, max_seconds: float = 30.0) -> Dict:
-        from vireon.runtime.twin import DigitalTwin
         from vireon.runtime.detection import SecurityEngine
         from vireon.runtime.attack import NoiseInjectionAttack, SignalDriftAttack
 
@@ -166,8 +169,8 @@ class ValidationRunner:
         try:
             try:
                 import importlib
-            _mod = importlib.import_module('vireon_lab.providers.datasets.edf_reader')
-            EDFReader = getattr(_mod, 'EDFReader')
+                _mod = importlib.import_module('vireon_lab.providers.datasets.edf_reader')
+                EDFReader = getattr(_mod, 'EDFReader')
             except ImportError:
                 EDFReader = None
             reader = EDFReader(str(edf_path), fallback_on_error=True)
@@ -205,7 +208,7 @@ class ValidationRunner:
         y_true = []
         y_score = []
 
-        twin = DigitalTwin(sample_rate=sample_rate, num_channels=use_channels)
+        twin = StateStore(EventBus())
         ids_engine = SecurityEngine(twin)
 
         # Warmup
@@ -262,7 +265,6 @@ class ValidationRunner:
         if not traces["baseline"]:
             return {"module": "synthetic", "status": "skipped", "error": "no synthetic data"}
 
-        from vireon.runtime.twin import DigitalTwin
         from vireon.runtime.detection import SecurityEngine
 
         baseline_raw = traces["baseline"].get("data", traces["baseline"].get("samples", []))
@@ -271,7 +273,7 @@ class ValidationRunner:
 
         data = np.array(baseline_raw).T if isinstance(baseline_raw[0], list) else np.array(baseline_raw).reshape(1, -1)
 
-        twin = DigitalTwin(sample_rate=traces["baseline"].get("fs", 250), num_channels=data.shape[0])
+        twin = StateStore(EventBus())
         ids_engine = SecurityEngine(twin)
 
         y_true = []
@@ -301,7 +303,9 @@ class ValidationRunner:
             attack_data = np.array(attack_raw).T if isinstance(attack_raw[0], list) else np.array(attack_raw).reshape(1, -1)
             
             # Restart twin/IDS for each attack to not carry over anomalous state
-            twin_a = DigitalTwin(sample_rate=trace_json.get("fs", 250), num_channels=attack_data.shape[0])
+            twin_a = StateStore(EventBus())
+            twin_a.set("sample_rate", trace_json.get("fs", 250))
+            twin_a.set("num_channels", attack_data.shape[0])
             ids_a = SecurityEngine(twin_a)
             for i in range(min(n_windows, 5)):
                 ids_a.analyze_signal(data[:, i*window_size : (i+1)*window_size])

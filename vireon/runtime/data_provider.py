@@ -1,5 +1,5 @@
 import warnings
-from vireon.reference_providers.telemetry.data_provider import *
+from vireon.reference_providers.telemetry.data_provider import *  # noqa: F403
 
 warnings.warn(
     "vireon.runtime.data_provider is deprecated and will be removed in v2.0. "

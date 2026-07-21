@@ -80,7 +80,7 @@ def _extract_imports(filepath: pathlib.Path) -> Set[str]:
 def _violations(
     source_dir: pathlib.Path,
     forbidden_prefixes: List[str],
-    exclude_files: Set[str] = frozenset(),
+    exclude_files: Set[str] = set(),
 ) -> List[Tuple[str, str]]:
     """Find files importing from forbidden prefixes.
 

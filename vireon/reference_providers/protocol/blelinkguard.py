@@ -17,6 +17,7 @@ import threading
 
 from vireon.sdk.events import Event
 from vireon.sdk.state import IStateStore
+from vireon.runtime.event_bus import EventBus
 
 class BLEConstants:
     MIN_MTU_SIZE = 23
@@ -50,7 +51,8 @@ class BLELinkGuard:
         if client_mac in bonding_db:
             if not is_paired:
                 self.blocked_spoofing_attempts += 1
-                self.state_store.set("clinical_alert_active", True, "link_guard"); self.state_store.set("clinical_status", f"BLE Link Guard: Blocked Spoofing (BLESA) from {client_mac}", "link_guard")
+                self.state_store.set("clinical_alert_active", True, "link_guard")
+                self.state_store.set("clinical_status", f"BLE Link Guard: Blocked Spoofing (BLESA) from {client_mac}", "link_guard")
                 if self.event_bus:
                     self.event_bus.publish(Event(
                         topic="link_guard.spoofing_blocked",
@@ -69,7 +71,8 @@ class BLELinkGuard:
         # If dropping more than 30% of packets, trigger RF Jamming Alert
         if drop_rate >= BLEConstants.JAMMING_DROP_RATE_THRESHOLD:
             self.jamming_alerts += 1
-            self.state_store.set("clinical_alert_active", True, "link_guard"); self.state_store.set("clinical_status", f"BLE Link Guard: Severe RF Jamming Detected ({drop_rate*100:.0f}% drops)", "link_guard")
+            self.state_store.set("clinical_alert_active", True, "link_guard")
+            self.state_store.set("clinical_status", f"BLE Link Guard: Severe RF Jamming Detected ({drop_rate*100:.0f}% drops)", "link_guard")
             if self.event_bus:
                 self.event_bus.publish(Event(
                     topic="link_guard.jamming_detected",
@@ -85,7 +88,8 @@ class BLELinkGuard:
         # BLE specification minimum MTU size is 23 bytes, maximum is 512 bytes (BLE 5.2)
         if requested_mtu < BLEConstants.MIN_MTU_SIZE or requested_mtu > BLEConstants.MAX_MTU_SIZE:
             self.blocked_mtu_abuses += 1
-            self.state_store.set("clinical_alert_active", True, "link_guard"); self.state_store.set("clinical_status", "BLE Link Guard: Blocked MTU Abuse", "link_guard")
+            self.state_store.set("clinical_alert_active", True, "link_guard")
+            self.state_store.set("clinical_status", "BLE Link Guard: Blocked MTU Abuse", "link_guard")
 
             if self.event_bus:
                 self.event_bus.publish(Event(

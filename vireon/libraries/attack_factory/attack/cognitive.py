@@ -46,10 +46,11 @@ class NeuroPhishingAttack(ISignalModifier):
                 mutated_data[ch, :] += trigger_wave
                 
         # Register the cognitive manipulation in the Digital Twin
-        twin.set_clinical_alert(True, f"Neuro-Phishing: {self.manipulation_type.upper()} manipulation detected")
+        state_store.set("clinical_alert_active", True, "ips")
+        state_store.set("clinical_alert_msg", f"Neuro-Phishing: {self.manipulation_type.upper()} manipulation detected", "ips")
         if self.manipulation_type == "emotional":
-            twin.dsm5_diagnosis = "INDUCED_MANIA"
-            twin.diagnostic_cluster = "COGNITIVE_WARFARE"
+            state_store.set("dsm5_diagnosis", "INDUCED_MANIA", "ips")
+            state_store.set("diagnostic_cluster", "COGNITIVE_WARFARE", "ips")
             
         return mutated_data
 
@@ -81,7 +82,8 @@ class FirmwareRollbackAttack(ISignalModifier):
             # Version is lower than the expected minimum (e.g., SVN 0)
             
             # Record the attempt on the Digital Twin's event log or directly via the firmware
-            twin.set_clinical_alert(True, f"Malicious OTA Downgrade Attempted (SVN {self.payload_version})")
+            state_store.set("clinical_alert_active", True, "ips")
+            state_store.set("clinical_alert_msg",  f"Malicious OTA Downgrade Attempted (SVN {self.payload_version})")
             
             # The actual OTA simulation happens in the Coordinator by invoking the firmware stub.
             # Here we just mark that the attack window triggered.
@@ -92,7 +94,8 @@ class FirmwareRollbackAttack(ISignalModifier):
     def revert(self, state_store: IStateStore) -> None:
         """Clear the clinical alert if it was triggered."""
         if self.has_fired:
-            twin.set_clinical_alert(False, "Nominal")
+            state_store.set("clinical_alert_active", False)
+            state_store.set("clinical_alert_msg",  "Nominal")
 
 
 class InsiderThreatAttack(ISignalModifier):
@@ -108,24 +111,27 @@ class InsiderThreatAttack(ISignalModifier):
         if not self.has_fired:
             print("[InsiderThreatAttack] Injecting malicious clinical configuration...")
             # Force a dangerous parameter directly on the twin
-            if hasattr(twin, "_lock"):
-                with twin._lock:
-                    twin.stimulation_amplitude_ma = 15.0
-                    twin.set_clinical_alert(True, "Insider Threat: Dangerous parameters injected")
+            if hasattr(state_store, "_lock"):
+                with state_store._lock:
+                    state_store.set("stimulation_amplitude_ma", 15.0, "ips")
+                    state_store.set("clinical_alert_active", True, "ips")
+                    state_store.set("clinical_alert_msg", "Insider Threat: Dangerous parameters injected", "ips")
             else:
-                twin.stimulation_amplitude_ma = 15.0
-                twin.set_clinical_alert(True, "Insider Threat: Dangerous parameters injected")
+                state_store.set("stimulation_amplitude_ma", 15.0, "ips")
+                state_store.set("clinical_alert_active", True, "ips")
+                state_store.set("clinical_alert_msg", "Insider Threat: Dangerous parameters injected", "ips")
             self.has_fired = True
         return data
 
     def revert(self, state_store: IStateStore) -> None:
         if self.has_fired:
-            if hasattr(twin, "_lock"):
-                with twin._lock:
-                    twin.stimulation_amplitude_ma = 5.0
-                    twin.set_clinical_alert(False, "Nominal")
+            if hasattr(state_store, "_lock"):
+                with state_store._lock:
+                    state_store.set("stimulation_amplitude_ma", 5.0, "ips")
+                    state_store.set("clinical_alert_active", False, "ips")
+                    state_store.set("clinical_alert_msg", "Nominal", "ips")
             else:
-                twin.stimulation_amplitude_ma = 5.0
-                twin.set_clinical_alert(False, "Nominal")
-
-
+                state_store.set("stimulation_amplitude_ma", 5.0, "ips")
+                state_store.set("clinical_alert_active", False, "ips")
+                state_store.set("clinical_alert_msg", "Nominal", "ips")
+            self.has_fired = False

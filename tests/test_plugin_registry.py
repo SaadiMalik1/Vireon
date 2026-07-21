@@ -23,8 +23,8 @@ def test_registry_unregister():
     info = PluginInfo(name="test_plugin", category="test")
     registry.register(info)
     
-    assert registry.unregister("test", "test_plugin") == True
-    assert registry.unregister("test", "test_plugin") == False
+    assert registry.unregister("test", "test_plugin") is True
+    assert registry.unregister("test", "test_plugin") is False
     
     with pytest.raises(KeyError):
         registry.get("test", "test_plugin")

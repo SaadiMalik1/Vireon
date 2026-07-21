@@ -15,7 +15,7 @@
 import json
 import logging
 import random
-import numpy as np
+import importlib; np = importlib.import_module('numpy')
 from vireon.runtime.event_bus import Event
 from vireon.runtime.zta import TrustContext, AuthorizationDecision
 
@@ -131,9 +131,9 @@ class CoordinatorCallbacks:
 
             try:
                 import importlib
-            _mod = importlib.import_module('vireon_lab.providers.protocols.ble.attacks')
-            GATTCorruptionAttack = getattr(_mod, 'GATTCorruptionAttack')
-            MalformedNotificationAttack = getattr(_mod, 'MalformedNotificationAttack')
+                _mod = importlib.import_module('vireon_lab.providers.protocols.ble.attacks')
+                GATTCorruptionAttack = getattr(_mod, 'GATTCorruptionAttack')
+                MalformedNotificationAttack = getattr(_mod, 'MalformedNotificationAttack')
             except ImportError:
                 GATTCorruptionAttack = MalformedNotificationAttack = None
             if self.c.config.emulation.ble_attack == "gatt_corrupt":

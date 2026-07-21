@@ -12,7 +12,6 @@ logger = logging.getLogger(__name__)
 def get_ids_descriptor() -> CapabilityDescriptor:
     return CapabilityDescriptor(
         id="vireon.reference.ids.v2",
-        version="2.0.0",
         implements=["IIDSProviderV1"],
         permissions=[
             "state.read:num_channels",
@@ -35,7 +34,7 @@ class DigitalTwinProxy:
     """
     def __init__(self, services: RuntimeServices):
         self.services = services
-        self.brain_regions = {}
+        self.brain_regions: dict[str, str] = {}
 
     @property
     def num_channels(self):

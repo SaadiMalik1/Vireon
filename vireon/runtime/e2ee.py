@@ -1,5 +1,5 @@
 import warnings
-from providers.authentication.e2ee import *
+from providers.authentication.e2ee import *  # noqa: F403
 
 warnings.warn(
     "vireon.runtime.e2ee is deprecated and will be removed in v2.0. "

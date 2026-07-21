@@ -74,10 +74,9 @@ class AdversarialOptimizerAttack(ISignalModifier):
         # 1. Evaluate fitness of the PREVIOUS gene based on twin's current physical state
         if self._last_injected:
             # The attacker analyzes the twin state to find optimal perturbation
-            current_state = state_store.get_state()
             # Fitness is directly tied to the twin's real-world beta power, ensuring
             # the GA learns how to evade the IDS/IPS in the environment.
-            beta_power = current_state.get("beta_power", 0.0)
+            beta_power = state_store.get("beta_power", 0.0)
             self.fitness_scores[self.current_gene_idx] = beta_power
             
             self.current_gene_idx += 1
@@ -178,8 +177,14 @@ class FramingDesynchronizationAttack(ISignalModifier):
         mutated_data = data.copy()
         
         # Calculate dynamic scaling based on the DigitalTwin ADC params
-        if hasattr(state_store, "adc_vref") and hasattr(state_store, "adc_gain") and hasattr(state_store, "adc_resolution_bits"):
-            scale_factor = (1000000.0 * state_store.adc_vref) / (state_store.adc_gain * ((2 ** (state_store.adc_resolution_bits - 1)) - 1))
+        adc_vref = state_store.get("adc_vref")
+        adc_gain = state_store.get("adc_gain")
+        adc_res = state_store.get("adc_resolution_bits")
+        
+        if adc_vref is not None and adc_gain is not None and adc_res is not None:
+            scale_factor = (1000000.0 * adc_vref) / (adc_gain * ((2 ** (adc_res - 1)) - 1))
+        else:
+            scale_factor = 1.0
         
         # 0xA0A0A0 in 24-bit signed = 10526880 - 16777216 = -6250336
         # 0xC0C0C0 in 24-bit signed = 12632256 - 16777216 = -4144960

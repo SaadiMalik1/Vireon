@@ -267,7 +267,7 @@ def register_builtin_plugins(registry: PluginRegistry) -> None:
     def _safe_register(info):
         if info.plugin_class is not None:
             _original_register(info)
-    registry.register = _safe_register    
+    registry.register = _safe_register  # type: ignore[method-assign]
 
     # --- Attack Modifiers ---
     from vireon.runtime.attack import (

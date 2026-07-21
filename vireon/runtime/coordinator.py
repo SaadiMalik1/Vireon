@@ -66,7 +66,7 @@ class Coordinator:
         self.lock = threading.Lock()
 
         # Optional components (initialized during setup based on config)
-        self.clinical_sim: Optional[ClosedLoopSimulator] = None
+        self.clinical_sim: Optional[Any] = None
         self.dbs_controller: Optional[Any] = None
         self.ids: Optional[Any] = None
         self.ips: Optional[Any] = None

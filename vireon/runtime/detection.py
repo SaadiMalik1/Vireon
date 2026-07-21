@@ -1,5 +1,5 @@
 import warnings
-from providers.ids.detection import *
+from providers.ids.detection import *  # noqa: F403
 
 warnings.warn(
     "vireon.runtime.detection is deprecated and will be removed in v2.0. "

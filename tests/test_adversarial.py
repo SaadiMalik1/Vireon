@@ -1,5 +1,7 @@
 import numpy as np
-from vireon.runtime.twin import DigitalTwin
+import importlib
+StateStore = importlib.import_module('vireon.runtime.state_store').StateStore
+EventBus = importlib.import_module('vireon.runtime.event_bus').EventBus
 from vireon.libraries.attack_factory.attack.adversarial import (
     AdversarialOptimizerAttack,
     RFJammingAttack,
@@ -8,7 +10,9 @@ from vireon.libraries.attack_factory.attack.adversarial import (
 )
 
 def test_adversarial_optimizer_attack():
-    twin = DigitalTwin(num_channels=8)
+    twin = StateStore(EventBus())
+    twin.set("num_channels", 8)
+    twin.set("stimulation_enabled", False)
     attack = AdversarialOptimizerAttack(target_channels=[0, 1], population_size=4)
     data = np.zeros((8, 100))
     rng = np.random.default_rng(42)
@@ -20,16 +24,20 @@ def test_adversarial_optimizer_attack():
     assert attack.generation > 0
 
 def test_rf_jamming_attack():
-    twin = DigitalTwin(num_channels=8)
+    twin = StateStore(EventBus())
+    twin.set("num_channels", 8)
+    twin.set("stimulation_enabled", False)
     attack = RFJammingAttack(drop_rate=0.8)
     data = np.zeros((8, 100))
     
     result = attack.apply(data, eeg_channels=list(range(8)), sample_rate=250, state_store=twin)
     assert np.array_equal(result, data)
-    assert getattr(twin, "rf_packet_drop_rate") == 0.8
+    assert twin.get("rf_packet_drop_rate") == 0.8
 
 def test_framing_desynchronization_attack():
-    twin = DigitalTwin(num_channels=8)
+    twin = StateStore(EventBus())
+    twin.set("num_channels", 8)
+    twin.set("stimulation_enabled", False)
     attack = FramingDesynchronizationAttack(target_channels=[0], inject_start_byte=True)
     data = np.zeros((8, 100))
     
@@ -39,7 +47,9 @@ def test_framing_desynchronization_attack():
     assert np.all(result[1, :] == 0)
 
 def test_session_replay_attack():
-    twin = DigitalTwin(num_channels=8)
+    twin = StateStore(EventBus())
+    twin.set("num_channels", 8)
+    twin.set("stimulation_enabled", False)
     attack = SessionReplayAttack(target_channels=[0], capture_duration_sec=0.1)
     data = np.ones((8, 10))
     
@@ -55,7 +65,9 @@ def test_session_replay_attack():
 
 from vireon.libraries.attack_factory.attack.adversarial import TemporalEvasionAttack
 def test_temporal_evasion_attack():
-    twin = DigitalTwin(num_channels=8)
+    twin = StateStore(EventBus())
+    twin.set("num_channels", 8)
+    twin.set("stimulation_enabled", False)
     attack = TemporalEvasionAttack(target_channels=[0], burst_duration_sec=0.1, quiet_duration_sec=0.1, amplitude=50.0)
     data = np.zeros((8, 100))
     result = attack.apply(data, eeg_channels=list(range(8)), sample_rate=100, state_store=twin)

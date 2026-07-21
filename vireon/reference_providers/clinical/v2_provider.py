@@ -12,7 +12,6 @@ logger = logging.getLogger(__name__)
 def get_clinical_descriptor() -> CapabilityDescriptor:
     return CapabilityDescriptor(
         id="vireon.reference.clinical.v2",
-        version="2.0.0",
         implements=["IClinicalProviderV1"],
         permissions=[
             "state.read:sim_clock",
@@ -37,7 +36,7 @@ def get_clinical_descriptor() -> CapabilityDescriptor:
 class TwinProxy:
     def __init__(self, services: RuntimeServices):
         self.services = services
-        self.brain_regions = {}
+        self.brain_regions: dict[str, str] = {}
 
     @property
     def num_channels(self):

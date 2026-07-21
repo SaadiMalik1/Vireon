@@ -3,6 +3,7 @@
 import ctypes
 import json
 import logging
+from typing import Optional
 from typing import Any
 
 from vireon.sdk.provider_interfaces.v1 import (
@@ -65,8 +66,8 @@ class NativeProviderLoader(IPhysicsProviderV1, IIDSProviderV1, IClinicalProvider
         # Load capability descriptor
         desc_json = self._lib.vireon_get_descriptor().decode('utf-8')
         self._descriptor = CapabilityDescriptor.parse_raw(desc_json)
-        self.services = None
-        self._c_services = None
+        self.services: Optional[RuntimeServices] = None
+        self._c_services: Optional[CVireonRuntimeServices] = None
         
         # Try to load optional interface methods
         if "IPhysicsProviderV1" in self._descriptor.implements:

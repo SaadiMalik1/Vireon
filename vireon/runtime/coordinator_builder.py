@@ -106,8 +106,8 @@ class SimulationBuilder:
             print("[VIREON] Configuring Hardware-in-the-loop (HIL) Socket Bridge...")
             try:
                 import importlib
-            _mod = importlib.import_module('vireon_lab.providers.hardware.devices.hardware_bridge')
-            HardwareBridge = getattr(_mod, 'HardwareBridge')
+                _mod = importlib.import_module('vireon_lab.providers.hardware.devices.hardware_bridge')
+                HardwareBridge = getattr(_mod, 'HardwareBridge')
             except ImportError:
                 HardwareBridge = None
             self.c.bridge = HardwareBridge(host="127.0.0.1", port=9090)
@@ -119,16 +119,16 @@ class SimulationBuilder:
             if ext in [".edf", ".bdf"]:
                 try:
                     import importlib
-            _mod = importlib.import_module('vireon_lab.providers.datasets.edf_reader')
-            EDFReader = getattr(_mod, 'EDFReader')
+                    _mod = importlib.import_module('vireon_lab.providers.datasets.edf_reader')
+                    EDFReader = getattr(_mod, 'EDFReader')
                 except ImportError:
                     EDFReader = None
                 dataset_reader = EDFReader(path)
             elif ext == ".csv":
                 try:
                     import importlib
-            _mod = importlib.import_module('vireon_lab.providers.datasets.csv_reader')
-            CSVReader = getattr(_mod, 'CSVReader')
+                    _mod = importlib.import_module('vireon_lab.providers.datasets.csv_reader')
+                    CSVReader = getattr(_mod, 'CSVReader')
                 except ImportError:
                     CSVReader = None
                 dataset_reader = CSVReader(path)

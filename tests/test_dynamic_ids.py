@@ -13,11 +13,15 @@
 # limitations under the License.
 
 import numpy as np
-from vireon.runtime.twin import DigitalTwin
+import importlib
+StateStore = importlib.import_module('vireon.runtime.state_store').StateStore
+EventBus = importlib.import_module('vireon.runtime.event_bus').EventBus
 from vireon.runtime.detection import SecurityEngine
 
 def test_autoencoder_and_cusum():
-    twin = DigitalTwin()
+    twin = StateStore(EventBus())
+    twin.set("num_channels", 8)
+    twin.set("stimulation_enabled", False)
     ids = SecurityEngine(twin)
     
     # Send nominal data (pink noise-like) to establish baseline

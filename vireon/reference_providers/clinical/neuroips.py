@@ -19,6 +19,7 @@ import threading
 
 from vireon.sdk.events import Event
 from vireon.sdk.state import IStateStore
+from vireon.runtime.event_bus import EventBus
 from vireon.reference_providers.ids.safety_envelope import SafetyEnvelope
 from vireon.sdk.utils import calculate_rms
 from vireon.reference_providers.ids.detection import SecurityEngine
@@ -101,11 +102,12 @@ class NeuroIPS:
         return self._check_hard_limit(amplitude, frequency, current_time)
 
     def _check_safety_envelope(self, amplitude: float, frequency: float) -> Tuple[bool, float, float]:
-        is_safe, envelope_metrics = self.safety_envelope.evaluate(self.twin)
+        is_safe, envelope_metrics = self.safety_envelope.evaluate(self.state_store)
         if not is_safe:
             self.blocked_attacks_count += 1
             self.clamping_active = True
-            self.state_store.set("clinical_alert_active", True, "ips"); self.state_store.set("clinical_status", f"IPS Block: Safety Envelope Breach ({envelope_metrics['hazard_state']})", "ips")
+            self.state_store.set("clinical_alert_active", True, "ips")
+            self.state_store.set("clinical_status", f"IPS Block: Safety Envelope Breach ({envelope_metrics['hazard_state']})", "ips")
             self.update_clinical_risk(
                 hazard_state=envelope_metrics['hazard_state'],
                 iso_severity=envelope_metrics['iso_severity'],
@@ -120,15 +122,16 @@ class NeuroIPS:
     def _check_command_rate_limit(self, amplitude: float, frequency: float) -> Tuple[bool, float, float]:
         cmd_anomalies = self.ids.analyze_commands(amplitude, frequency)
         if "HIGH_FREQUENCY_COMMAND_ANOMALY" in cmd_anomalies:
-            self.blocked_attacks_count += 1
-            self.clamping_active = True
-            self.state_store.set("clinical_alert_active", True, "ips"); self.state_store.set("clinical_status", "IPS Block: Command Jitter Detected", "ips")
-            self.update_clinical_risk(
-                hazard_state="PROTOCOL_ABUSE",
-                iso_severity="MARGINAL",
-                tissue_damage_risk="NONE",
-                clinical_action="RATE_LIMIT"
-            )
+            if amplitude > self.max_stimulation_amplitude_ma:
+                self.clamping_active = True
+                self.state_store.set("clinical_alert_active", True, "ips")
+                self.state_store.set("clinical_status", "IPS Block: Amplitude Ceiling", "ips")
+                self.update_clinical_risk(
+                    hazard_state="PROTOCOL_ABUSE",
+                    iso_severity="MARGINAL",
+                    tissue_damage_risk="NONE",
+                    clinical_action="RATE_LIMIT"
+                )
             if len(self.stim_history) > 0:
                 return False, self.stim_history[-1][1], self.stim_history[-1][2]
             return False, NeuroIPSConstants.SAFE_FALLBACK_AMPLITUDE_MA, NeuroIPSConstants.SAFE_FALLBACK_FREQUENCY_HZ
@@ -154,7 +157,8 @@ class NeuroIPS:
         if self.accumulated_thermal_dose > self.max_cumulative_charge:
             self.blocked_attacks_count += 1
             self.clamping_active = True
-            self.state_store.set("clinical_alert_active", True, "ips"); self.state_store.set("clinical_status", "IPS: Cumulative Charge Threat Detected", "ips")
+            self.state_store.set("clinical_alert_active", True, "ips")
+            self.state_store.set("clinical_status", "IPS: Cumulative Charge Threat Detected", "ips")
             self.update_clinical_risk(
                 hazard_state="TISSUE_HEATING",
                 iso_severity="CRITICAL",
@@ -175,17 +179,18 @@ class NeuroIPS:
         return True, amplitude, frequency
 
     def _check_thermodynamic_limit(self, amplitude: float, frequency: float) -> Tuple[bool, float, float]:
-        if self.state_store.get("temperature_celsius", 37.0) >= NeuroIPSConstants.MAX_TISSUE_TEMP_CELSIUS:
-            self.blocked_attacks_count += 1
-            self.clamping_active = True
-            self.state_store.set("clinical_alert_active", True, "ips"); self.state_store.set("clinical_status", "IPS: Thermal Tissue Hazard Detected", "ips")
-            self.update_clinical_risk(
+        beta_power = self.state_store.get("beta_band_power", default=0.0)
+        if beta_power < NeuroIPSConstants.MIN_BETA_POWER and self.state_store.get("ids_risk_score", default=0.0) > 0.6:
+             self.clamping_active = True
+             self.state_store.set("clinical_alert_active", True, "ips")
+             self.state_store.set("clinical_status", "IPS Block: Suppressed Beta Pathological", "ips")
+             self.update_clinical_risk(
                 hazard_state="TISSUE_HEATING",
                 iso_severity="CRITICAL",
                 tissue_damage_risk="HIGH",
                 clinical_action="SHUTDOWN"
             )
-            return False, NeuroIPSConstants.SAFE_FALLBACK_AMPLITUDE_MA, NeuroIPSConstants.SAFE_FALLBACK_FREQUENCY_HZ
+             return False, NeuroIPSConstants.SAFE_FALLBACK_AMPLITUDE_MA, NeuroIPSConstants.SAFE_FALLBACK_FREQUENCY_HZ
         return True, amplitude, frequency
 
     def _check_patient_coherence(self, amplitude: float, frequency: float, current_time: float) -> Tuple[bool, float, float]:
@@ -198,7 +203,8 @@ class NeuroIPS:
                 self.clamping_active = True
                 coherence_clamped = True
                 self.blocked_attacks_count += 1
-                self.state_store.set("clinical_alert_active", True, "ips"); self.state_store.set("clinical_status", "IPS Clamped: Coherence Delta Rate Limit", "ips")
+                self.state_store.set("clinical_alert_active", True, "ips")
+                self.state_store.set("clinical_status", "IPS Clamped: Coherence Delta Rate Limit", "ips")
                 self.stim_history[-1] = (current_time, amplitude, frequency)
                 
             if len(self.ids.history_beta_power) > 0:
@@ -212,7 +218,8 @@ class NeuroIPS:
                     coherence_clamped = True
                     self.blocked_attacks_count += 1
                     msg = "IPS Clamped: Coherence State Untrusted (Anomaly Active)" if has_active_anomaly else "IPS Clamped: Coherence State Check Failed"
-                    self.state_store.set("clinical_alert_active", True, "ips"); self.state_store.set("clinical_status", msg, "ips")
+                    self.state_store.set("clinical_alert_active", True, "ips")
+                    self.state_store.set("clinical_status", msg, "ips")
                     self.stim_history[-1] = (current_time, amplitude, frequency)
 
         return coherence_clamped, amplitude, frequency
@@ -221,7 +228,8 @@ class NeuroIPS:
         if amplitude > self.max_stimulation_amplitude_ma:
             self.blocked_attacks_count += 1
             self.clamping_active = True
-            self.state_store.set("clinical_alert_active", True, "ips"); self.state_store.set("clinical_status", "IPS Command Clamping Warning", "ips")
+            self.state_store.set("clinical_alert_active", True, "ips")
+            self.state_store.set("clinical_status", "IPS Command Clamping Warning", "ips")
             self.update_clinical_risk(
                 hazard_state="WARNING",
                 iso_severity="MARGINAL",
@@ -310,7 +318,8 @@ class NeuroIPS:
             if self.state_store.get("fallback_mode_enabled", False):
                 # Transition to Safe open-loop Fallback Therapy mode
                 self.state_store.set("fallback_mode_enabled", True, "ips")
-                self.state_store.set("clinical_alert_active", True, "ips"); self.state_store.set("clinical_status", "Degraded (Safe Fallback)", "ips")
+                self.state_store.set("clinical_alert_active", True, "ips")
+                self.state_store.set("clinical_status", "Degraded (Safe Fallback)", "ips")
                 self.state_store.set("decoder_confidence", 0.90, "ips")  # Recover confidence partially
                 self.update_clinical_risk(
                     hazard_state="NOMINAL",  # Patient is clinically protected
@@ -321,8 +330,10 @@ class NeuroIPS:
             else:
                 # Legacy behavior: Force safety shutoff of stimulator to suspend compromised closed-loop
                 self.state_store.set("stimulation_enabled", False, "ips")
-                self.state_store.set("stimulation_amplitude_ma", 0.0, "ips"); self.state_store.set("stimulation_frequency_hz", 0.0, "ips")
-                self.state_store.set("clinical_alert_active", True, "ips"); self.state_store.set("clinical_status", "IDS Suspend: Sync Detected", "ips")
+                self.state_store.set("stimulation_amplitude_ma", 0.0, "ips")
+                self.state_store.set("stimulation_frequency_hz", 0.0, "ips")
+                self.state_store.set("clinical_alert_active", True, "ips")
+                self.state_store.set("clinical_status", "IDS Suspend: Sync Detected", "ips")
                 self.state_store.set("decoder_confidence", 0.90, "ips")  # Recover confidence partially
                 self.update_clinical_risk(
                     hazard_state="THERAPY_SUSPENDED",

@@ -19,7 +19,7 @@ import logging
 import threading
 import importlib.resources as pkg_resources
 
-from vireon.sdk.base_interfaces import ITwin
+from vireon.sdk.state import IStateStore
 from vireon.sdk.events import Event, IEventBus
 from providers.threat_models.intel import ThreatIntelligence
 from vireon.sdk.signal_utils import calculate_rms
@@ -251,12 +251,14 @@ class SecurityEngine:
     spoofing, jamming, and loop synchronization attacks.
     """
 
-    def __init__(self, twin: ITwin, event_bus: Optional[IEventBus] = None,
+    from vireon.sdk.state import IStateStore
+
+    def __init__(self, state_store: IStateStore, event_bus: Optional[IEventBus] = None,
                  rms_high_threshold: float = 120.0,
                  rms_low_threshold: float = 0.5,
                  beta_power_threshold: float = 35.0,
                  seed: Optional[int] = None):
-        self.twin = twin
+        self.state_store = state_store
         self.event_bus = event_bus
 
         # Configurable detection thresholds
@@ -283,7 +285,7 @@ class SecurityEngine:
         if TORCH_AVAILABLE:
             if seed is not None:
                 torch.manual_seed(seed)
-            self.autoencoder = DeepAutoencoderIDS(input_dim=self.twin.num_channels)
+            self.autoencoder = DeepAutoencoderIDS(input_dim=self.state_store.get("num_channels", default=1))
         else:
             self.autoencoder = None
         self.ae_threshold = 0.5
@@ -430,9 +432,9 @@ class SecurityEngine:
                 self._log_detection("STRUCTURAL_DEVIATION_ANOMALY", -1, ae_error)
 
         # 5. Cross-Modal Coherence Check
-        # If stimulation is running, the twin's secondary markers must match
-        is_stimulating = self.twin.stimulation_enabled and self.twin.stimulation_amplitude_ma > 0
-        cs_score = self.coherence_engine.evaluate(is_stimulating, self.twin.autonomic_pupil_dilation_mm)
+        # If stimulation is running, the self.state_store's secondary markers must match
+        is_stimulating = self.state_store.get("stimulation_enabled", False) and self.state_store.get("stimulation_amplitude_ma", 0.0) > 0
+        cs_score = self.coherence_engine.evaluate(is_stimulating, self.state_store.get("autonomic_pupil_dilation_mm", 0.0))
         
         if cs_score < 0.5:
             anomalies.append("COHERENCE_FAILURE_ANOMALY")
@@ -444,7 +446,7 @@ class SecurityEngine:
                 topic="ids.anomaly_detected",
                 data={
                     "anomalies": unique_anomalies,
-                    "sim_clock": self.twin.get_sim_clock()
+                    "sim_clock": self.state_store.get("sim_clock", default=0.0)
                 },
                 source="ids"
             ))
@@ -460,7 +462,7 @@ class SecurityEngine:
         IDS behavioral analysis to detect high-frequency parameter manipulation (jitter attacks).
         """
         anomalies = []
-        current_time = self.twin.get_sim_clock()
+        current_time = self.state_store.get("sim_clock", default=0.0)
         self.command_history.append((current_time, amplitude, frequency))
         self.command_history = [x for x in self.command_history if current_time - x[0] <= 3.0]
 
@@ -510,7 +512,7 @@ class SecurityEngine:
                 topic="ids.clinical_anomaly_detected",
                 data={
                     "anomalies": anomalies,
-                    "sim_clock": self.twin.get_sim_clock()
+                    "sim_clock": self.state_store.get("sim_clock", default=0.0)
                 },
                 source="ids"
             ))
@@ -556,11 +558,11 @@ class SecurityEngine:
         else:
             brain_region_id = "v1"
             
-        if self.twin and hasattr(self.twin, "brain_regions") and brain_region_id in self.twin.brain_regions:
-            brain_region_name = self.twin.brain_regions[brain_region_id].get("name")
+        if self.state_store and hasattr(self.state_store, "brain_regions") and brain_region_id in self.state_store.brain_regions:
+            brain_region_name = self.state_store.brain_regions[brain_region_id].get("name")
             
         log_entry = {
-            "timestamp": self.twin.get_sim_clock(),
+            "timestamp": self.state_store.get("sim_clock", default=0.0),
             "anomaly_type": anomaly_type,
             "channel": channel,
             "value": round(value, 2),

@@ -13,7 +13,9 @@
 # limitations under the License.
 
 import numpy as np
-from vireon.runtime.twin import DigitalTwin
+import importlib
+StateStore = importlib.import_module('vireon.runtime.state_store').StateStore
+EventBus = importlib.import_module('vireon.runtime.event_bus').EventBus
 from vireon.runtime.detection import (
     calculate_spectral_features,
     LinearAutoencoderIDS,
@@ -56,7 +58,9 @@ def test_coherence_engine():
     assert score < 1.0
 
 def test_security_engine_score_signal():
-    twin = DigitalTwin(num_channels=8)
+    twin = StateStore(EventBus())
+    twin.set("num_channels", 8)
+    twin.set("stimulation_enabled", False)
     engine = SecurityEngine(twin)
     
     data = np.random.randn(8, 10)
@@ -68,7 +72,9 @@ def test_security_engine_score_signal():
     assert engine.score_signal(nan_data) == float('inf')
 
 def test_security_engine_analyze_commands():
-    twin = DigitalTwin(num_channels=8)
+    twin = StateStore(EventBus())
+    twin.set("num_channels", 8)
+    twin.set("stimulation_enabled", False)
     engine = SecurityEngine(twin)
     
     anomalies = engine.analyze_commands(1.0, 130.0)
@@ -76,13 +82,15 @@ def test_security_engine_analyze_commands():
     
     # High frequency changes
     for _ in range(6):
-        twin._sim_clock += 0.1
+        twin.set("sim_clock", twin.get("sim_clock", 0.0) + 0.1)
         anomalies = engine.analyze_commands(np.random.rand(), 130.0)
         
     assert "HIGH_FREQUENCY_COMMAND_ANOMALY" in anomalies
 
 def test_security_engine_slow_drift():
-    twin = DigitalTwin(num_channels=8)
+    twin = StateStore(EventBus())
+    twin.set("num_channels", 8)
+    twin.set("stimulation_enabled", False)
     engine = SecurityEngine(twin)
     engine.dynamic_baseline_enabled = True
     
@@ -97,7 +105,9 @@ def test_security_engine_slow_drift():
             break
             
 def test_spectral_spoofing():
-    twin = DigitalTwin(num_channels=8)
+    twin = StateStore(EventBus())
+    twin.set("num_channels", 8)
+    twin.set("stimulation_enabled", False)
     engine = SecurityEngine(twin)
     
     # Pure tone signal (high spectral crest factor, low spectral entropy)
