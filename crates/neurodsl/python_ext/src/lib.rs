@@ -22,8 +22,15 @@ pub struct PyScribe {
     bytecode: Vec<u8>,
 }
 
+impl Default for PyScribe {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[pymethods]
 impl PyScribe {
+
     #[new]
     pub fn new() -> Self {
         PyScribe {
