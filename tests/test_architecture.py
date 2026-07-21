@@ -14,7 +14,6 @@
 
 import os
 import ast
-import pytest
 
 
 def test_no_vireon_lab_imports_in_vireon():

@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import time
 from vireon.runtime.event_bus import EventBus
 from vireon.sdk.events import Event
 from vireon.runtime.twin import DigitalTwin
