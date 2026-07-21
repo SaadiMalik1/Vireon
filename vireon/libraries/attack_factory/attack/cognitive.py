@@ -47,7 +47,7 @@ class NeuroPhishingAttack(ISignalModifier):
                 
         # Register the cognitive manipulation in the Digital Twin
         state_store.set("clinical_alert_active", True, "ips")
-        state_store.set("clinical_alert_msg", f"Neuro-Phishing: {self.manipulation_type.upper()} manipulation detected", "ips")
+        state_store.set("clinical_status", f"Neuro-Phishing: {self.manipulation_type.upper()} manipulation detected", "ips")
         if self.manipulation_type == "emotional":
             state_store.set("dsm5_diagnosis", "INDUCED_MANIA", "ips")
             state_store.set("diagnostic_cluster", "COGNITIVE_WARFARE", "ips")
@@ -83,7 +83,7 @@ class FirmwareRollbackAttack(ISignalModifier):
             
             # Record the attempt on the Digital Twin's event log or directly via the firmware
             state_store.set("clinical_alert_active", True, "ips")
-            state_store.set("clinical_alert_msg",  f"Malicious OTA Downgrade Attempted (SVN {self.payload_version})")
+            state_store.set("clinical_status",  f"Malicious OTA Downgrade Attempted (SVN {self.payload_version})")
             
             # The actual OTA simulation happens in the Coordinator by invoking the firmware stub.
             # Here we just mark that the attack window triggered.
@@ -95,7 +95,7 @@ class FirmwareRollbackAttack(ISignalModifier):
         """Clear the clinical alert if it was triggered."""
         if self.has_fired:
             state_store.set("clinical_alert_active", False)
-            state_store.set("clinical_alert_msg",  "Nominal")
+            state_store.set("clinical_status",  "Nominal")
 
 
 class InsiderThreatAttack(ISignalModifier):
@@ -115,11 +115,11 @@ class InsiderThreatAttack(ISignalModifier):
                 with state_store._lock:
                     state_store.set("stimulation_amplitude_ma", 15.0, "ips")
                     state_store.set("clinical_alert_active", True, "ips")
-                    state_store.set("clinical_alert_msg", "Insider Threat: Dangerous parameters injected", "ips")
+                    state_store.set("clinical_status", "Insider Threat: Dangerous parameters injected", "ips")
             else:
                 state_store.set("stimulation_amplitude_ma", 15.0, "ips")
                 state_store.set("clinical_alert_active", True, "ips")
-                state_store.set("clinical_alert_msg", "Insider Threat: Dangerous parameters injected", "ips")
+                state_store.set("clinical_status", "Insider Threat: Dangerous parameters injected", "ips")
             self.has_fired = True
         return data
 
@@ -129,9 +129,9 @@ class InsiderThreatAttack(ISignalModifier):
                 with state_store._lock:
                     state_store.set("stimulation_amplitude_ma", 5.0, "ips")
                     state_store.set("clinical_alert_active", False, "ips")
-                    state_store.set("clinical_alert_msg", "Nominal", "ips")
+                    state_store.set("clinical_status", "Nominal", "ips")
             else:
                 state_store.set("stimulation_amplitude_ma", 5.0, "ips")
                 state_store.set("clinical_alert_active", False, "ips")
-                state_store.set("clinical_alert_msg", "Nominal", "ips")
+                state_store.set("clinical_status", "Nominal", "ips")
             self.has_fired = False

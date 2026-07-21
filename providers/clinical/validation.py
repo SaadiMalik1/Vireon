@@ -161,8 +161,8 @@ class ValidationRunner:
         return traces
 
     def validate_ids_on_edf(self, edf_path: Path, max_seconds: float = 30.0) -> Dict:
-        from vireon.runtime.detection import SecurityEngine
-        from vireon.runtime.attack import NoiseInjectionAttack, SignalDriftAttack
+        from vireon.reference_providers.ids.detection import SecurityEngine
+        from vireon.libraries.attack_factory.attack.modifiers import NoiseInjectionAttack, SignalDriftAttack
 
         logger.info(f"  Loading {edf_path.name}...")
 
@@ -265,7 +265,7 @@ class ValidationRunner:
         if not traces["baseline"]:
             return {"module": "synthetic", "status": "skipped", "error": "no synthetic data"}
 
-        from vireon.runtime.detection import SecurityEngine
+        from vireon.reference_providers.ids.detection import SecurityEngine
 
         baseline_raw = traces["baseline"].get("data", traces["baseline"].get("samples", []))
         if not baseline_raw:

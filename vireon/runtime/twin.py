@@ -228,6 +228,25 @@ class DigitalTwin(ITwin):
 
     # --- State Mutators ---
 
+    def set(self, key: str, value: Any, source: str = "system") -> None:
+        """Compatibility method for StateStore.set()"""
+        if key.startswith("impedance_ch"):
+            try:
+                ch = int(key.replace("impedance_ch", ""))
+                self.electrode_impedances[ch] = value
+            except ValueError:
+                setattr(self, key, value)
+        else:
+            setattr(self, key, value)
+
+    def get(self, key: str, default: Any = None) -> Any:
+        """Compatibility method for StateStore.get()"""
+        return getattr(self, key, default)
+
+    def get_all(self) -> Dict[str, Any]:
+        """Compatibility method for StateStore.get_all()"""
+        return self.get_state()
+
     def _log_state_change(self, event: str):
         # Always run within lock or call from locked context
         state_copy = {

@@ -15,7 +15,8 @@
 import json
 import logging
 import random
-import importlib; np = importlib.import_module('numpy')
+import importlib
+np = importlib.import_module('numpy')
 from vireon.runtime.event_bus import Event
 from vireon.runtime.zta import TrustContext, AuthorizationDecision
 

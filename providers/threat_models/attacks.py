@@ -15,7 +15,6 @@
 import numpy as np
 from typing import List
 from vireon.libraries.attack_factory.attack.base import ISignalModifier
-from vireon.sdk.base_interfaces import ITwin
 from vireon.sdk.state import IStateStore
 from providers.threat_models.intel import ThreatIntelligence
 

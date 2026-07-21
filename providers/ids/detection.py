@@ -19,7 +19,6 @@ import logging
 import threading
 import importlib.resources as pkg_resources
 
-from vireon.sdk.state import IStateStore
 from vireon.sdk.events import Event, IEventBus
 from providers.threat_models.intel import ThreatIntelligence
 from vireon.sdk.signal_utils import calculate_rms
