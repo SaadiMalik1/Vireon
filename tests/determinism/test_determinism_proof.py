@@ -40,8 +40,8 @@ def run_simulation_stream(seed: int = 42, steps: int = 500) -> Dict[str, str]:
         clock.advance()
         val_ch0 = rng.normal(loc=0.0, scale=1.0)
         val_ch1 = rng.uniform(low=-10.0, high=10.0)
-        store.set(f"signal_ch0", float(val_ch0))
-        store.set(f"signal_ch1", float(val_ch1))
+        store.set("signal_ch0", float(val_ch0))
+        store.set("signal_ch1", float(val_ch1))
         
         state_crc = store.get_state_checksum()
         history.append((step, clock.sim_time, val_ch0, val_ch1, state_crc))

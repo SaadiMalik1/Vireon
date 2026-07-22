@@ -25,7 +25,6 @@ import time
 import hashlib
 import platform
 import subprocess
-from pathlib import Path
 from cryptography.hazmat.primitives.asymmetric import ed25519
 from vireon.runtime.merkle import MerkleTree
 from vireon.runtime.trace_bundle import TraceBundle

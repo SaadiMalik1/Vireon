@@ -20,7 +20,6 @@ import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-import json
 import subprocess
 from scripts.generate_evidence import generate_system_evidence_package
 from tests.benchmarks.benchmark_suite import run_full_benchmark_matrix
@@ -64,7 +63,7 @@ def generate_validation_reports(benchmarks: dict, evidence_path: str):
 
     # 2. DETERMINISM.md
     with open("DETERMINISM.md", "w", encoding="utf-8") as f:
-        f.write(f"""# VIREON Determinism & Bit-Identical Replay Proof
+        f.write("""# VIREON Determinism & Bit-Identical Replay Proof
 
 **Standard:** `gemi3.6r/vvvv` (Phase 3 Determinism)  
 **Report File:** `determinism_report.json`  
@@ -79,7 +78,7 @@ VIREON guarantees 100% bit-identical simulation replay across repeated execution
 
     # 3. SECURITY_VALIDATION.md
     with open("SECURITY_VALIDATION.md", "w", encoding="utf-8") as f:
-        f.write(f"""# VIREON Security & Clinical Validation Audit
+        f.write("""# VIREON Security & Clinical Validation Audit
 
 **Standard:** `gemi3.6r/vvvv` (Phase 7 Security & Phase 8 Clinical)  
 
@@ -95,7 +94,7 @@ VIREON guarantees 100% bit-identical simulation replay across repeated execution
 
     # 4. DATASET_VALIDATION.md
     with open("DATASET_VALIDATION.md", "w", encoding="utf-8") as f:
-        f.write(f"""# VIREON Multi-Channel Dataset & Synthetic Generator Validation
+        f.write("""# VIREON Multi-Channel Dataset & Synthetic Generator Validation
 
 **Standard:** `gemi3.6r/vvvv` (Phase 5 Datasets)  
 

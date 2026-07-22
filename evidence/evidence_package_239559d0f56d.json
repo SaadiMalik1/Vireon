@@ -1,0 +1,20 @@
+{
+  "trace_bundle": {
+    "merkle_root": "76e9e70aa6a4e8171e2ff5656de1d7995a4a7b1c5df21e1aa16ccfe31fc30216",
+    "pin_hash": "239559d0f56d",
+    "metadata": {
+      "git_commit": "239559d0f56d7e129957f2cd5266c76a2e3abec8",
+      "timestamp": 1784727693.7558954,
+      "vireon_source_sha256": "f6819118860dfa8de43e47700f1ec5590bdc0d378a7c25570927abee637d66b0",
+      "neurodsl_source_sha256": "56e7b4a2e8724c23d57ac911ca0aeee2952d4477a574df6ec8f4c4e8c8e97f6f",
+      "python_version": "3.14.6 (main, Jun 23 2026, 18:14:05) [GCC 16.1.1 20260430]",
+      "platform": "Linux-7.1.3-2-cachyos-x86_64-with-glibc2.43",
+      "processor": "",
+      "system": "Linux",
+      "architecture": "64bit"
+    },
+    "signature_hex": "9cafd7a3ca0fe8bdc73ed0438db56a283710f6dce04b412bfeb1e4e292a2b1eead44f8d3944ab2588ceee1d50cd0b3b088dfe12e1f91e568ccd0b14e1047e400",
+    "public_key_hex": "1d52a117a3013e9ace1859b5c937dc33026308deec58996bc0b1767c4ed17bc4",
+    "signature_verified": true
+  }
+}
