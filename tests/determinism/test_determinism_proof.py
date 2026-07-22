@@ -18,10 +18,9 @@ Phase 3 Determinism Validation & Bit-Identical Replay Suite.
 
 import json
 import hashlib
-import numpy as np
 from vireon.runtime.rng import DeterministicRNG
 from vireon.runtime.clock import DeterministicClock, ClockMode
-from vireon.runtime.event_bus import EventBus, Event
+from vireon.runtime.event_bus import EventBus
 from vireon.runtime.state_store import StateStore
 
 

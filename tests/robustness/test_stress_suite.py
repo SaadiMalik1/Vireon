@@ -22,7 +22,6 @@ from vireon.datasets.synthetic import SyntheticDataGenerator
 from vireon.runtime.event_bus import EventBus
 from vireon.runtime.state_store import StateStore
 from vireon.runtime.orchestrator import VireonOrchestrator, OrchestrationFault
-from vireon.sdk.manifest import CapabilityManifest
 from vireon.sdk.capability.descriptor import CapabilityDescriptor
 from vireon.sdk.provider_interfaces.v1 import IPhysicsProviderV1
 

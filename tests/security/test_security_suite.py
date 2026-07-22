@@ -23,7 +23,7 @@ from vireon.runtime.trace_bundle import TraceBundle
 from vireon.runtime.merkle import MerkleTree
 from vireon.sdk.manifest import CapabilityManifest
 from vireon.runtime.capability_engine import CapabilityEngine
-from vireon.runtime.configuration import ExperimentConfig, SecurityConfig, DeviceConfig, OutputConfig
+from vireon.runtime.configuration import ExperimentConfig, SecurityConfig, OutputConfig
 
 
 def test_signature_forgery_rejection():

@@ -18,14 +18,11 @@ Phase 4 Automated System Performance & Latency Benchmarking Suite.
 
 import time
 import json
-import numpy as np
 from typing import Dict, Any
 from vireon.runtime.event_bus import EventBus, Event
 from vireon.runtime.state_store import StateStore
-from vireon.runtime.clock import DeterministicClock
 from vireon.runtime.ring_buffer import SPSCRingBuffer
 from vireon.runtime.orchestrator import VireonOrchestrator
-from vireon.sdk.manifest import CapabilityManifest
 from vireon.sdk.capability.descriptor import CapabilityDescriptor
 from vireon.sdk.provider_interfaces.v1 import IPhysicsProviderV1
 

@@ -23,7 +23,7 @@ from vireon.runtime.event_bus import EventBus
 
 from vireon.runtime.state_store import StateStore
 from vireon.runtime.capability_engine import EventBusProxy, StateStoreProxy, CapabilityViolationError
-from vireon.sdk.provider_interfaces.v1 import IPhysicsProviderV1, IIDSProviderV1
+from vireon.sdk.provider_interfaces.v1 import IPhysicsProviderV1
 
 
 class SamplePhysicsProvider(IPhysicsProviderV1):
