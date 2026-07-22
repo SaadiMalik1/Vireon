@@ -33,8 +33,10 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - run: |
           pip install -e ".[dev]"
-          maturin develop --manifest-path crates/neurodsl/python_ext/Cargo.toml
+          maturin build --manifest-path crates/neurodsl/python_ext/Cargo.toml --out target/wheels
+          pip install target/wheels/*.whl
           pytest
+
 
 
   test-rust:
