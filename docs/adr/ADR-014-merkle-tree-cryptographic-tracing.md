@@ -1,7 +1,8 @@
 # ADR 014: Merkle Tree Cryptographic Tracing
 
 ## Status
-Accepted — Deferred (Phase E)
+Accepted — Implemented (StateStore auto-append & Ed25519 trace signing)
+
 
 ## Context
 Trace bundles contain the absolute truth of a validation run. A malicious actor could decompress a trace bundle, alter the recorded State Graph to hide a critical device failure, recompress it, and submit it for FDA approval.

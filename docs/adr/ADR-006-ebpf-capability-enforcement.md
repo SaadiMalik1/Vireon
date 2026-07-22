@@ -1,7 +1,8 @@
 # ADR 006: eBPF Capability Enforcement
 
 ## Status
-Accepted — Deferred (Phase D)
+Accepted — Implemented (`prctl(PR_SET_NO_NEW_PRIVS)` & `set_seccomp_strict_mode`)
+
 
 ## Context
 The ecosystem relies on "Capability Manifests" (see ADR-003) to grant permissions to untrusted vendor plugins. Currently, capability enforcement is theoretical or application-level (e.g., the Kernel checking a boolean before invoking an API).
