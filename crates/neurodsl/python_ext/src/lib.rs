@@ -12,9 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use pyo3::exceptions::{PyRuntimeError, PyValueError};
+use pyo3::create_exception;
+use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
 use scribe::interpreter::ScribeContext;
+
+create_exception!(vireon_neuro_dsl, VireonNeuroDSLError, PyException);
+create_exception!(vireon_neuro_dsl, NeuroDSLCompileError, VireonNeuroDSLError);
+create_exception!(
+    vireon_neuro_dsl,
+    NeuroDSLExecutionError,
+    VireonNeuroDSLError
+);
+create_exception!(
+    vireon_neuro_dsl,
+    NeuroDSLSecurityViolation,
+    VireonNeuroDSLError
+);
 
 #[pyclass]
 pub struct PyScribe {
@@ -40,7 +54,7 @@ impl PyScribe {
 
     pub fn load_bytecode(&mut self, bytecode: &[u8]) -> PyResult<()> {
         if let Err(e) = self.inner.verify(bytecode) {
-            return Err(PyValueError::new_err(format!(
+            return Err(NeuroDSLExecutionError::new_err(format!(
                 "Bytecode validation failed: {:?}",
                 e
             )));
@@ -55,7 +69,7 @@ impl PyScribe {
         }
 
         if let Err(e) = self.inner.execute(&self.bytecode, &eeg_data) {
-            return Err(PyRuntimeError::new_err(format!(
+            return Err(NeuroDSLExecutionError::new_err(format!(
                 "Scribe execution error: {:?}",
                 e
             )));
@@ -65,12 +79,15 @@ impl PyScribe {
     }
 }
 
-/// Compiles a NeuroDSL script string into bytecode.
+/// Compiles a NeuroDSL script string into bytecode (ADR-009).
 #[pyfunction]
 fn compile_script(source: &str) -> PyResult<Vec<u8>> {
     match forge::compile(source) {
         Ok(bytecode) => Ok(bytecode),
-        Err(e) => Err(PyValueError::new_err(format!("Compile error: {:?}", e))),
+        Err(e) => Err(NeuroDSLCompileError::new_err(format!(
+            "Compile error: {:?}",
+            e
+        ))),
     }
 }
 
@@ -78,5 +95,21 @@ fn compile_script(source: &str) -> PyResult<Vec<u8>> {
 fn vireon_neuro_dsl(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyScribe>()?;
     m.add_function(wrap_pyfunction!(compile_script, m)?)?;
+    m.add(
+        "VireonNeuroDSLError",
+        m.py().get_type::<VireonNeuroDSLError>(),
+    )?;
+    m.add(
+        "NeuroDSLCompileError",
+        m.py().get_type::<NeuroDSLCompileError>(),
+    )?;
+    m.add(
+        "NeuroDSLExecutionError",
+        m.py().get_type::<NeuroDSLExecutionError>(),
+    )?;
+    m.add(
+        "NeuroDSLSecurityViolation",
+        m.py().get_type::<NeuroDSLSecurityViolation>(),
+    )?;
     Ok(())
 }

@@ -1,7 +1,7 @@
 # ADR 003: Provider Capability Manifests (Zero-Trust Sandbox)
 
 ## Status
-Accepted — Deferred (Phase B)
+Accepted — Implemented (v2.0.0-alpha.2)
 
 ## Context
 Currently, providers execute in the same process space as the VIREON runtime, implicitly granting them unrestricted access to the host's filesystem, network, and memory. For VIREON to serve as a trusted, vendor-neutral validation platform, we must assume that proprietary provider binaries are untrusted and potentially malicious.

@@ -1,7 +1,7 @@
 # ADR 013: Compiler-Pinned Determinism
 
 ## Status
-Accepted — Deferred (Phase B)
+Accepted — Implemented (v2.0.0-alpha.2)
 
 ## Context
 If a Trace Bundle is used for regulatory submission (e.g., FDA clearance), the results must be mathematically reproducible. If the VIREON runtime is recompiled with a newer version of `rustc` or `gcc`, floating-point optimizations (like Fused Multiply-Add) or struct alignment changes can alter the mathematical outcome of the physics engine at the 15th decimal place. Over millions of ticks, this chaotic divergence completely invalidates the regulatory trace bundle.

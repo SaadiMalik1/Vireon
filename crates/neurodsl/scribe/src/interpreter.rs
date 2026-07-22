@@ -71,13 +71,39 @@ impl ScribeContext {
                     }
                     ip += 3;
                 }
-                0x03 => ip += 3,
-                0x04 => ip += 3,
-                0x05 => ip += 3,
-                0x06 => ip += 2,
+                0x03 => {
+                    if ip + 2 >= bytecode.len() {
+                        return Err(ScribeError::UnexpectedEndOfStream);
+                    }
+                    ip += 3;
+                }
+                0x04 => {
+                    if ip + 2 >= bytecode.len() {
+                        return Err(ScribeError::UnexpectedEndOfStream);
+                    }
+                    ip += 3;
+                }
+                0x05 => {
+                    if ip + 2 >= bytecode.len() {
+                        return Err(ScribeError::UnexpectedEndOfStream);
+                    }
+                    ip += 3;
+                }
+                0x06 => {
+                    if ip + 1 >= bytecode.len() {
+                        return Err(ScribeError::UnexpectedEndOfStream);
+                    }
+                    ip += 2;
+                }
                 0x07 => ip += 1,
-                0x08 => ip += 5,
+                0x08 => {
+                    if ip + 4 >= bytecode.len() {
+                        return Err(ScribeError::UnexpectedEndOfStream);
+                    }
+                    ip += 5;
+                }
                 0xFF => break,
+
                 _ => return Err(ScribeError::InvalidOpcode(opcode)),
             }
         }

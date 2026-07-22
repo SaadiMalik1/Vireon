@@ -13,6 +13,9 @@
 # limitations under the License.
 
 from vireon.runtime.twin import DigitalTwin
+from vireon.runtime.clock import DeterministicClock, ClockMode, BifurcatedScheduler
+from vireon.runtime.rng import DeterministicRNG
+from vireon.runtime.compiler_pin import CompilerPin
 
 
 def test_deterministic_clock_advancement():
@@ -44,3 +47,39 @@ def test_digital_twin_component_state():
     twin.physics.stimulation_amplitude_ma = 2.5
     assert twin.stimulation_enabled is True
     assert twin.stimulation_amplitude_ma == 2.5
+
+
+def test_deterministic_rng_reproducibility():
+    """Verify DeterministicRNG stream reproducibility given identical seed (ADR-004)."""
+    rng1 = DeterministicRNG(seed=1337)
+    rng2 = DeterministicRNG(seed=1337)
+
+    samples1 = rng1.normal(loc=0.0, scale=1.0, size=(8, 100))
+    samples2 = rng2.normal(loc=0.0, scale=1.0, size=(8, 100))
+
+    assert (samples1 == samples2).all()
+
+
+def test_bifurcated_scheduler_tick():
+    """Verify BifurcatedScheduler dispatches task callbacks at expected ticks (ADR-005)."""
+    clock = DeterministicClock(mode=ClockMode.VIRTUAL, step_dt_ms=4.0)
+    scheduler = BifurcatedScheduler(clock=clock)
+
+    executed = []
+    scheduler.schedule(delay_sec=0.008, callback=lambda: executed.append("task1"))
+
+    # Step 1: 0.004s -> not executed
+    scheduler.tick_and_dispatch()
+    assert len(executed) == 0
+
+    # Step 2: 0.008s -> executed
+    scheduler.tick_and_dispatch()
+    assert executed == ["task1"]
+
+
+def test_compiler_pin_verification():
+    """Verify CompilerPin generates deterministic environment hash (ADR-013)."""
+    pin_hash = CompilerPin.compute_pin_hash()
+    assert isinstance(pin_hash, str)
+    assert len(pin_hash) == 64
+    assert CompilerPin.verify_pin(pin_hash) is True

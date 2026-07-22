@@ -1,7 +1,7 @@
 # ADR 009: FFI Error Mapping
 
 ## Status
-Accepted — Deferred (Phase A)
+Implemented (v2.0.0-alpha.1)
 
 ## Context
 VIREON supports plugins written in various languages (Rust, Python, C++, WASM). The boundary between the Kernel and these plugins is an FFI (Foreign Function Interface) or IPC layer.
