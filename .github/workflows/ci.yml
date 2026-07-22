@@ -20,7 +20,7 @@ jobs:
           cargo clippy --workspace -- -D warnings
           cargo fmt --check
           ruff check .
-          mypy src/vireon || true
+          mypy vireon || true
 
   test-python:
     runs-on: ubuntu-latest
@@ -30,9 +30,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+      - uses: dtolnay/rust-toolchain@stable
       - run: |
           pip install -e ".[dev]"
+          maturin develop --manifest-path crates/neurodsl/python_ext/Cargo.toml
           pytest
+
 
   test-rust:
     runs-on: ubuntu-latest

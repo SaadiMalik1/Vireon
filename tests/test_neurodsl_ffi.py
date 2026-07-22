@@ -13,7 +13,9 @@
 # limitations under the License.
 
 import pytest
-import vireon_neuro_dsl
+
+vireon_neuro_dsl = pytest.importorskip("vireon_neuro_dsl")
+
 
 
 def test_neurodsl_ffi_exception_exports():
