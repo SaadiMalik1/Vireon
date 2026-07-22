@@ -20,11 +20,10 @@ import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-import json
 import subprocess
-from pathlib import Path
 from scripts.generate_evidence import generate_system_evidence_package
 from tests.benchmarks.benchmark_suite import run_full_benchmark_matrix
+
 
 
 
