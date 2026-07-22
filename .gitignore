@@ -50,3 +50,7 @@ sbom.json
 .DS_Store
 .vscode/
 .idea/
+
+# Implementation / Audit Rules
+imp/
+
