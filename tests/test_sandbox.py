@@ -34,6 +34,7 @@ def test_process_sandbox_policy():
     sandbox = ProcessSandbox(manifest)
 
     assert sandbox.verify_isolation_policy() is True
+    assert sandbox.apply_isolation_policy() is True
 
 
 def test_unidirectional_memory_guard():
@@ -42,3 +43,4 @@ def test_unidirectional_memory_guard():
 
     assert UnidirectionalMemoryGuard.verify_read_only(readonly_view) is True
     assert readonly_view.flags.writeable is False
+

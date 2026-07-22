@@ -60,3 +60,23 @@ def test_hardware_watchdog_timeout():
     time.sleep(0.02)
     assert wd.check() is False
     assert stalled_called is True
+
+
+def test_state_store_merkle_and_checksum():
+    from vireon.runtime.event_bus import EventBus
+    from vireon.runtime.state_store import StateStore
+
+    bus = EventBus()
+    tree = MerkleTree()
+    store = StateStore(bus, merkle_tree=tree)
+
+    checksum_before = store.get_state_checksum()
+    assert len(checksum_before) == 8
+
+    store.set("tissue_temp", 37.5)
+    store.set("battery_charge", 0.98)
+
+    assert tree.get_root() is not None
+    checksum_after = store.get_state_checksum()
+    assert checksum_before != checksum_after
+

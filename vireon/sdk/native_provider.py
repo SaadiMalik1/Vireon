@@ -65,7 +65,10 @@ class NativeProviderLoader(IPhysicsProviderV1, IIDSProviderV1, IClinicalProvider
         
         # Load capability descriptor
         desc_json = self._lib.vireon_get_descriptor().decode('utf-8')
-        self._descriptor = CapabilityDescriptor.parse_raw(desc_json)
+        if hasattr(CapabilityDescriptor, 'model_validate_json'):
+            self._descriptor = CapabilityDescriptor.model_validate_json(desc_json)
+        else:
+            self._descriptor = CapabilityDescriptor.parse_raw(desc_json)
         self.services: Optional[RuntimeServices] = None
         self._c_services: Optional[CVireonRuntimeServices] = None
         

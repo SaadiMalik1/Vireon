@@ -243,7 +243,7 @@ class Coordinator:
                     sys.stdout.write("\033[H\033[J")
                     sys.stdout.write(format_telemetry_table(self.twin))
                     if self.emulator and hasattr(self.emulator, 'slave_name'):
-                        sys.stdout.write(f"Virtual Cyton Port : {self.emulator.slave_name}\n")
+                        sys.stdout.write(f"Virtual Device Port: {self.emulator.slave_name}\n")
                     sys.stdout.write(f"\nRemaining Time: {max(0.0, self.config.duration_sec - (time.time() - start_time)):.1f}s\n")
                     sys.stdout.write(f"Sim Clock: {self.engine.sim_clock:.1f}s | Speed: {self.engine.speed:.1f}x\n")
                     if self.engine.is_paused:

@@ -2,13 +2,13 @@
 # Vireon V2 Orchestrator Kernel
 
 import logging
-from typing import Dict, Any
-
+from typing import Dict, Any, List, Tuple, Callable
 from vireon.sdk.lifecycle.state_machine import ILifecycleManager, ProviderState
 from vireon.sdk.capability.descriptor import CapabilityDescriptor
 from vireon.sdk.provider_interfaces.v1 import IProviderV1
 from vireon.sdk.services.apis import RuntimeServices
 from vireon.runtime.enforcement import EnforcingStateAPI, EnforcingTelemetryAPI
+from vireon.runtime.watchdog import HardwareWatchdog
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +29,39 @@ class VireonOrchestrator(ILifecycleManager):
         self.descriptors: Dict[str, CapabilityDescriptor] = {}
         self.provider_states: Dict[str, ProviderState] = {}
         self.injected_services: Dict[str, RuntimeServices] = {}
+        
+        # Pre-cached method callbacks for zero-allocation tick execution (R3)
+        self._physics_callbacks: List[Tuple[str, Callable[[float], None]]] = []
+        self._ids_callbacks: List[Tuple[str, Callable[[Any], bool]]] = []
+        self._clinical_callbacks: List[Tuple[str, Callable[[Any], dict]]] = []
+        self._telemetry_callbacks: List[Tuple[str, Callable[[float], None]]] = []
+
+        # Hardware execution watchdog (ADR-010)
+        self.watchdog = HardwareWatchdog(timeout_sec=2.0)
+
+    def _rebuild_callback_cache(self) -> None:
+        """Pre-caches bound method pointers for fast, zero-reflection tick loops."""
+        self._physics_callbacks.clear()
+        self._ids_callbacks.clear()
+        self._clinical_callbacks.clear()
+        self._telemetry_callbacks.clear()
+
+        for p_id, provider in self.providers.items():
+            desc = self.descriptors.get(p_id)
+            if not desc:
+                continue
+
+            if "IPhysicsProviderV1" in desc.implements and hasattr(provider, "step_physics"):
+                self._physics_callbacks.append((p_id, getattr(provider, "step_physics")))
+
+            if "IIDSProviderV1" in desc.implements and hasattr(provider, "analyze_window"):
+                self._ids_callbacks.append((p_id, getattr(provider, "analyze_window")))
+
+            if "IClinicalProviderV1" in desc.implements and hasattr(provider, "evaluate_biomarker"):
+                self._clinical_callbacks.append((p_id, getattr(provider, "evaluate_biomarker")))
+
+            if "ITelemetryProviderV1" in desc.implements and hasattr(provider, "on_tick"):
+                self._telemetry_callbacks.append((p_id, getattr(provider, "on_tick")))
 
     def register_provider(self, provider: IProviderV1, descriptor: CapabilityDescriptor) -> None:
         """Stage 1: DISCOVERED"""
@@ -91,41 +124,40 @@ class VireonOrchestrator(ILifecycleManager):
                 provider.initialize(services)
                 
             self.transition(p_id, ProviderState.READY)
+            
+        self._rebuild_callback_cache()
 
     def start_all(self):
         for p_id in self.providers:
             self.transition(p_id, ProviderState.STARTING)
             # Trigger threads/subprocess boots here
             self.transition(p_id, ProviderState.RUNNING)
+            
+        self._rebuild_callback_cache()
 
     def tick_all(self, dt: float, data: Any = None):
         """
         The deterministic tick driven by the Engine.
-        Calls the appropriate ABI methods for each provider based on its declared interfaces.
+        Executes pre-cached ABI methods for each running provider without runtime reflection.
         """
-        for p_id, provider in self.providers.items():
-            if self.provider_states[p_id] != ProviderState.RUNNING:
-                continue
-                
-            desc = self.descriptors[p_id]
-            
-            if "IPhysicsProviderV1" in desc.implements:
-                if hasattr(provider, "step_physics"):
-                    provider.step_physics(dt)
-                    
-            if data is not None:
-                if "IIDSProviderV1" in desc.implements:
-                    if hasattr(provider, "analyze_window"):
-                        provider.analyze_window(data)
-                        
-                if "IClinicalProviderV1" in desc.implements:
-                    if hasattr(provider, "evaluate_biomarker"):
-                        provider.evaluate_biomarker(data)
+        self.watchdog.kick()
 
-            if "ITelemetryProviderV1" in desc.implements:
-                if hasattr(provider, "on_tick"):
-                    # Backward compat or specific tick logic
-                    provider.on_tick(dt)
+        for p_id, physics_fn in self._physics_callbacks:
+            if self.provider_states.get(p_id) == ProviderState.RUNNING:
+                physics_fn(dt)
+
+        if data is not None:
+            for p_id, ids_fn in self._ids_callbacks:
+                if self.provider_states.get(p_id) == ProviderState.RUNNING:
+                    ids_fn(data)
+
+            for p_id, clinical_fn in self._clinical_callbacks:
+                if self.provider_states.get(p_id) == ProviderState.RUNNING:
+                    clinical_fn(data)
+
+        for p_id, telemetry_fn in self._telemetry_callbacks:
+            if self.provider_states.get(p_id) == ProviderState.RUNNING:
+                telemetry_fn(dt)
 
     def shutdown_all(self):
         for p_id, provider in self.providers.items():

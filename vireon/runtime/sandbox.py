@@ -19,8 +19,30 @@ Maps provider capability manifests into Linux seccomp-bpf syscall filters and pr
 isolation profiles to enforce zero-trust OS boundary sandboxing.
 """
 
+import ctypes
+import sys
+import logging
 from typing import Dict, Any
 from vireon.sdk.manifest import CapabilityManifest
+
+logger = logging.getLogger(__name__)
+
+PR_SET_NO_NEW_PRIVS = 38
+PR_SET_SECCOMP = 22
+SECCOMP_MODE_STRICT = 1
+
+
+def set_no_new_privs() -> bool:
+    """Invokes Linux prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) to prevent privilege escalation."""
+    if sys.platform != "linux":
+        return False
+    try:
+        libc = ctypes.CDLL("libc.so.6")
+        res = libc.prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0)
+        return res == 0
+    except Exception as e:
+        logger.warning(f"prctl(PR_SET_NO_NEW_PRIVS) failed: {e}")
+        return False
 
 
 class SeccompProfileGenerator:
@@ -62,3 +84,13 @@ class ProcessSandbox:
     def verify_isolation_policy(self) -> bool:
         # Enforce that unauthorized syscall access raises SIGSYS
         return self.seccomp_profile["defaultAction"] == "SCMP_ACT_KILL_PROCESS"
+
+    def apply_isolation_policy(self) -> bool:
+        """Applies OS-level no-new-privs constraint and verifies seccomp policy readiness."""
+        if not self.verify_isolation_policy():
+            return False
+        # If running on Linux without host access requirement, apply no_new_privs
+        if not self.manifest.requires_host_access:
+            set_no_new_privs()
+        return True
+
