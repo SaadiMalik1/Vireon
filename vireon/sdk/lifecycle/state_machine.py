@@ -24,7 +24,8 @@ class ProviderState(Enum):
 class ILifecycleManager:
     """Interface that orchestrators must implement to drive provider states."""
     def transition(self, provider_id: str, target_state: ProviderState) -> bool:
-        pass
+        raise NotImplementedError
 
     def perform_health_check(self, provider_id: str) -> dict:
-        pass
+        raise NotImplementedError
+

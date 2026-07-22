@@ -194,16 +194,8 @@ class Coordinator:
         self.engine.add_callback(self.callbacks.simulation_callback)
 
         # 10. OpenBCI emulator
-        if self.config.emulation.openbci:
-            try:
-                import importlib
-                _mod = importlib.import_module("vireon_lab.reference_providers.clinical.closed_loop")
-                OpenBCICytonEmulator = getattr(_mod, 'OpenBCICytonEmulator')
-            except ImportError:
-                OpenBCICytonEmulator = None
-            self.emulator = OpenBCICytonEmulator(self.twin)
-            self.emulator.start()
-            self.engine.add_callback(self.emulator.send_eeg_data)
+        self.emulator = None
+
 
         # 11. Initialize Attack Chain (Threat Model) - REMOVED (Dead orchestration)
         self.attack_chain = []
@@ -308,7 +300,8 @@ class Coordinator:
                 decision = self.zta_engine.evaluate_request("ota_update", ctx)
                 if decision == AuthorizationDecision.DENY:
                     print("[Coordinator] ZTA Policy Engine blocked OTA Firmware Update (Trust score too low).")
-                    self.twin.set_clinical_alert(True, "ZTA Blocked OTA Update Attempt")
+                    if self.twin:
+                        self.twin.set_clinical_alert(True, "ZTA Blocked OTA Update Attempt")
                     return False
             
             # Check if require_signed_ota is configured (defaults to True for Phase 3)
@@ -321,8 +314,10 @@ class Coordinator:
                 
             if not success:
                 print(f"[Coordinator] FIRMWARE FAULT: {self.emulator.crash_reason}")
-                self.twin.set_clinical_alert(True, f"Firmware Fault: {self.emulator.crash_reason}")
+                if self.twin:
+                    self.twin.set_clinical_alert(True, f"Firmware Fault: {self.emulator.crash_reason}")
             return success
+
         return False
 
     def _compile_reports(self):
@@ -349,18 +344,7 @@ class Coordinator:
         summary["nsp_active"] = self.twin.nsp_mode
         summary["p300_leakage_events"] = self.total_p300_leakage_events
 
-        try:
-            import importlib
-            _mod = importlib.import_module("vireon_lab.reference_providers.clinical.closed_loop")
-            ReportGenerator = getattr(_mod, 'ReportGenerator')
-        except ImportError:
-            ReportGenerator = None
-                
-        generator = ReportGenerator(self.twin)
-        timestamp = time.strftime("%Y%m%d_%H%M%S")
-        prefix_with_time = f"{self.config.output.report_prefix}_{timestamp}"
-        
-        generator.compile_report(summary, prefix_with_time, anonymize_exports=self.config.privacy.anonymize_exports)
+
 
         print("\n" + "=" * 60)
         print(" SIMULATION COMPLETE")

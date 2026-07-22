@@ -19,7 +19,8 @@ Provides seed-managed pseudo-random number generation wrapper ensuring reproduci
 noise generation and simulation stream outputs across re-runs.
 """
 
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Any
+
 import numpy as np
 
 
@@ -38,14 +39,15 @@ class DeterministicRNG:
             self.initial_seed = seed
         self._generator = np.random.default_rng(self.initial_seed)
 
-    def normal(self, loc: float = 0.0, scale: float = 1.0, size: Optional[Tuple[int, ...]] = None) -> np.ndarray:
+    def normal(self, loc: float = 0.0, scale: float = 1.0, size: Optional[Tuple[int, ...]] = None) -> Any:
         return self._generator.normal(loc, scale, size)
 
-    def uniform(self, low: float = 0.0, high: float = 1.0, size: Optional[Tuple[int, ...]] = None) -> np.ndarray:
+    def uniform(self, low: float = 0.0, high: float = 1.0, size: Optional[Tuple[int, ...]] = None) -> Any:
         return self._generator.uniform(low, high, size)
 
-    def integer(self, low: int, high: int, size: Optional[Tuple[int, ...]] = None) -> np.ndarray:
+    def integer(self, low: int, high: int, size: Optional[Tuple[int, ...]] = None) -> Any:
         return self._generator.integers(low, high, size)
+
 
     def get_state(self) -> dict:
         return {

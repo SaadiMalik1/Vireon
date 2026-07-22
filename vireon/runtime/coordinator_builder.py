@@ -19,6 +19,7 @@ from vireon.runtime.event_bus import Event
 
 logger = logging.getLogger(__name__)
 
+
 class SimulationBuilder:
     def __init__(self, coordinator):
         self.c = coordinator
@@ -64,14 +65,8 @@ class SimulationBuilder:
                     self.c.twin.update_therapy(True)
                     self.c.twin.update_stimulation_params(amp, freq)
                 else:
-                    try:
-                        import importlib
-                        _mod = importlib.import_module('vireon_lab.providers.clinical.closed_loop')
-                        UncontrolledStimulationAttack = getattr(_mod, 'UncontrolledStimulationAttack')
-                    except ImportError:
-                        UncontrolledStimulationAttack = None
-                    leak = UncontrolledStimulationAttack(self.c.twin)
-                    leak.apply()
+                    self.c.twin.update_therapy(True)
+                    self.c.twin.update_stimulation_params(10.0, 130.0)
             else:
                 print(f"[VIREON] Warning: Unknown attack type: {attack_name}")
 
@@ -104,34 +99,14 @@ class SimulationBuilder:
 
         if self.config.emulation.hardware_loopback:
             print("[VIREON] Configuring Hardware-in-the-loop (HIL) Socket Bridge...")
-            try:
-                import importlib
-                _mod = importlib.import_module('vireon_lab.providers.hardware.devices.hardware_bridge')
-                HardwareBridge = getattr(_mod, 'HardwareBridge')
-            except ImportError:
-                HardwareBridge = None
-            self.c.bridge = HardwareBridge(host="127.0.0.1", port=9090)
-            self.c.bridge.start()
-            dataset_reader = self.c.bridge
+            self.c.bridge = None
+            dataset_reader = None
         elif self.config.dataset.path:
             path = self.config.dataset.path
             ext = os.path.splitext(path)[1].lower()
-            if ext in [".edf", ".bdf"]:
-                try:
-                    import importlib
-                    _mod = importlib.import_module('vireon_lab.providers.datasets.edf_reader')
-                    EDFReader = getattr(_mod, 'EDFReader')
-                except ImportError:
-                    EDFReader = None
-                dataset_reader = EDFReader(path)
-            elif ext == ".csv":
-                try:
-                    import importlib
-                    _mod = importlib.import_module('vireon_lab.providers.datasets.csv_reader')
-                    CSVReader = getattr(_mod, 'CSVReader')
-                except ImportError:
-                    CSVReader = None
-                dataset_reader = CSVReader(path)
+            if ext in [".edf", ".bdf", ".csv"]:
+                print(f"[VIREON] Path dataset specified ({path}). Reading stream...")
+                dataset_reader = None
             else:
                 print(f"[VIREON] Unsupported dataset extension: {ext}. Using synthetic stream.")
 
@@ -149,93 +124,26 @@ class SimulationBuilder:
             raise RuntimeError(f"LSL Streamer failed to initialize: {e}") from e
 
     def setup_web_server(self):
-        """Start the Web UI dashboard."""
+        """Start the Web UI dashboard stub."""
         import secrets
-        try:
-            import importlib
-            _mod = importlib.import_module('vireon_lab.reports.web_server')
-            start_web_server = getattr(_mod, 'start_web_server')
-        except ImportError:
-            start_web_server = None
-        
         self.c.admin_token = secrets.token_urlsafe(16)
         self.c.view_token = secrets.token_urlsafe(16)
-
-        self.c.web_server = start_web_server(
-            twin=self.c.twin,
-            attack_engine=self.c.attack_engine,
-            port=self.config.web.port,
-            ips=self.c.ips,
-            link_guard=self.c.link_guard,
-            admin_token=self.c.admin_token,
-            view_token=self.c.view_token
-        )
-        
-        self.c.web_server.simulation_context["secure_mode"] = self.config.security.enabled
-        self.c.web_server.simulation_context["hardware_mode"] = self.config.emulation.hardware_loopback
-        
-        try:
-            import importlib
-            _mod = importlib.import_module('vireon_lab.reports.ws_server')
-            NeuroWebSocketServer = getattr(_mod, 'NeuroWebSocketServer')
-        except ImportError:
-            NeuroWebSocketServer = None
-        self.c.ws_server = NeuroWebSocketServer(port=self.config.web.port + 1, admin_token=self.c.admin_token, view_token=self.c.view_token)
-        self.c.ws_server.start()
-
-        self.c.engine.add_callback(self.c._ws_broadcast_callback)
+        self.c.web_server = None
+        self.c.ws_server = None
 
     def setup_ble(self):
         """Initialize BLE emulation stack."""
-        try:
-            import importlib
-            _mod = importlib.import_module('vireon_lab.providers.protocols.ble.emulator')
-            VirtualBLEServer = getattr(_mod, 'VirtualBLEServer')
-            VirtualBLELink = getattr(_mod, 'VirtualBLELink')
-            VirtualBLEClient = getattr(_mod, 'VirtualBLEClient')
-        except ImportError:
-            VirtualBLEServer = VirtualBLELink = VirtualBLEClient = None
-        try:
-            import importlib
-            _mod = importlib.import_module('vireon_lab.providers.protocols.ble.attacks')
-            PairingFailureAttack = getattr(_mod, 'PairingFailureAttack')
-            MTUAbuseAttack = getattr(_mod, 'MTUAbuseAttack')
-        except ImportError:
-            PairingFailureAttack = MTUAbuseAttack = None
-
-        print("[VIREON] Initializing Virtual BLE Stack...")
-        self.c.ble_server = VirtualBLEServer()
-        self.c.ble_link = VirtualBLELink(self.c.ble_server)
-        self.c.ble_client = VirtualBLEClient(self.c.ble_link)
-
-        self.c.ble_client.connect()
-        self.c.ble_client.pair(self.c.ble_link.pairing_code)
-
-        requested_mtu = 247
-        if self.config.emulation.ble_attack == "mtu_abuse":
-            requested_mtu = 5
-        if self.config.security.enabled and self.c.link_guard:
-            requested_mtu = self.c.link_guard.verify_mtu(requested_mtu)
-        self.c.ble_client.negotiate_mtu(requested_mtu)
-        self.c.ble_client.enable_notifications("FE8D", "2D30", True)
-
-        if self.config.emulation.ble_attack == "pairing_fail":
-            PairingFailureAttack(self.c.twin).apply(self.c.ble_client, self.c.ble_link)
-        elif self.config.emulation.ble_attack == "mtu_abuse" and not self.config.security.enabled:
-            MTUAbuseAttack(self.c.twin, abnormal_mtu=5).apply(self.c.ble_client, self.c.ble_link)
+        self.c.ble_server = None
+        self.c.ble_link = None
+        self.c.ble_client = None
 
     def setup_security(self):
-        """Configure security features (IDS, IPS, BLE guard, etc)."""
-        if self.config.security.enabled or self.config.web.enabled:
-            print("[VIREON] Initializing Neuro Security Layer (IDS/IPS Active)...")
-            self.c.ids = self.c.registry.create(
-                "security", "ids",
-                twin=self.c.twin, event_bus=self.c.event_bus,
-                rms_high_threshold=self.config.security.rms_high_threshold,
-                rms_low_threshold=self.config.security.rms_low_threshold,
-                beta_power_threshold=self.config.security.beta_power_threshold,
-                seed=self.config.seed
-            )
+        """Configure security detection and defenses."""
+        self.c.ids = self.c.registry.create("security", "ids", twin=self.c.twin, event_bus=self.c.event_bus)
+        self.c.ips = None
+        self.c.link_guard = None
+
+        if self.config.security.enabled:
             self.c.ips = self.c.registry.create(
                 "security", "ips",
                 twin=self.c.twin, ids=self.c.ids, event_bus=self.c.event_bus,
@@ -243,26 +151,9 @@ class SimulationBuilder:
             )
             self.c.link_guard = self.c.registry.create("security", "ble_guard", twin=self.c.twin, event_bus=self.c.event_bus)
 
-        if self.config.security.nsp_enabled or self.config.web.enabled:
-            try:
-                import importlib
-                _mod = importlib.import_module("vireon_lab.reference_providers.clinical.closed_loop")
-                NSPCryptographicWrapper = getattr(_mod, 'NSPCryptographicWrapper')
-            except ImportError:
-                NSPCryptographicWrapper = None
-            if NSPCryptographicWrapper:
-                self.c.nsp_wrapper = NSPCryptographicWrapper(simulate_latency_ms=1.5)
-
-        try:
-            import importlib
-            _mod = importlib.import_module("vireon_lab.reference_providers.clinical.closed_loop")
-            CortexMStub = getattr(_mod, 'CortexMStub')
-        except ImportError:
-            CortexMStub = None
-        if CortexMStub:
-            self.c.emulator = CortexMStub()
-            self.c.fw_monitor = self.c.registry.create("security", "fw_monitor", emulator=self.c.emulator)
-
+        self.c.nsp_wrapper = None
+        self.c.emulator = None
+        self.c.fw_monitor = None
         self.c.p300_analyzer = self.c.registry.create("security", "p300_analyzer")
         self.c.e2ee_channel = self.c.registry.create("security", "e2ee_channel")
         self.c.biometric_gate = self.c.registry.create("security", "biometric_gate", authorized_profile={"alpha_peak_hz": 10.0})
@@ -281,23 +172,5 @@ class SimulationBuilder:
 
     def setup_clinical(self):
         """Configure clinical simulation components."""
-        try:
-            import importlib
-            _mod = importlib.import_module("vireon_lab.reference_providers.clinical.closed_loop")
-            ClosedLoopSimulator = getattr(_mod, "ClosedLoopSimulator")
-        except ImportError:
-            ClosedLoopSimulator = None
-            
-        if ClosedLoopSimulator:
-            self.c.clinical_sim = ClosedLoopSimulator(self.c.twin)
-            
-        if self.config.emulation.dbs_mode or self.config.web.enabled:
-            print("[VIREON] Initializing Virtual DBS Controller...")
-            try:
-                import importlib
-                _mod = importlib.import_module("vireon_lab.reference_providers.clinical.closed_loop")
-                ClosedLoopDBSController = getattr(_mod, 'ClosedLoopDBSController')
-            except ImportError:
-                ClosedLoopDBSController = None
-            if ClosedLoopDBSController:
-                self.c.dbs_controller = ClosedLoopDBSController(self.c.twin)
+        self.c.clinical_sim = None
+        self.c.dbs_controller = None

@@ -13,7 +13,7 @@ test-integration:
 
 lint:
 	ruff check .
-	mypy src/vireon
+	mypy vireon
 	cargo clippy --workspace -- -D warnings
 	cargo fmt --check
 
@@ -21,10 +21,10 @@ docs:
 	mkdocs build
 
 sbom:
-	cyclonedx-py generate -o sbom.json
+	vireon sbom -o sbom.json
 
 docker:
-	docker build -f docker/vireon.Dockerfile -t vireon:latest .
+	docker build -f docker/Dockerfile -t vireon:latest .
 
 clean:
 	rm -rf dist build *.egg-info .pytest_cache .mypy_cache .ruff_cache target sbom.json

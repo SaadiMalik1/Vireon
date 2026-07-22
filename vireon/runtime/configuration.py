@@ -26,6 +26,7 @@ from enum import Enum
 from pydantic import BaseModel, Field, model_validator
 
 # TOML parsing: use stdlib tomllib (3.11+) or fallback to tomli
+tomllib: Any = None
 try:
     import tomllib
 except ImportError:
@@ -33,6 +34,7 @@ except ImportError:
         import tomli as tomllib  # type: ignore[no-redef]
     except ImportError:
         tomllib = None
+
 
 
 class AttackerCapability(str, Enum):

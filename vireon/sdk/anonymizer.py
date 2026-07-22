@@ -26,7 +26,8 @@ References:
 
 import numpy as np
 import random
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
+
 
 class TemporalJittering:
     """Applies random temporal shifts/jitter to data points."""
@@ -51,9 +52,10 @@ class TemporalJittering:
 
 class ChannelPermutation:
     """Randomly swaps symmetric EEG channels to mask spatial signatures."""
-    def __init__(self, symmetric_pairs: List[tuple] = None):
+    def __init__(self, symmetric_pairs: Optional[List[tuple]] = None):
         # Default pairs for standard 8-channel board (e.g., [Fp1, Fp2], [C3, C4])
         self.symmetric_pairs = symmetric_pairs or [(0, 1), (2, 3), (4, 5)]
+
         
     def apply(self, chunk: np.ndarray) -> np.ndarray:
         if chunk.size == 0 or chunk.ndim < 2:

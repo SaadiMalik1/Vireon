@@ -63,9 +63,11 @@ addopts = "-v --tb=short"
 line-length = 120
 target-version = "py310"
 exclude = [".venv", "venv", "__pycache__", "target"]
+
+[tool.ruff.lint]
 ignore = ["E402"]
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.12"
 ignore_missing_imports = true
 strict_optional = true

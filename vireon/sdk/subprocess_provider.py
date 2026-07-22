@@ -115,7 +115,8 @@ class SubprocessProvider(IProvider):
                     )
                     # This goes through the CapabilityEngine proxy
                     try:
-                        self.context.event_bus.publish(event)
+                        if self.context is not None and self.context.event_bus is not None:
+                            self.context.event_bus.publish(event)
                     except Exception as e:
                         print(f"[SubprocessProvider] Security Violation by {self.manifest.name}: {e}")
                 
@@ -123,7 +124,7 @@ class SubprocessProvider(IProvider):
                     # Subprocess wants to read state
                     key = payload.get("key")
                     try:
-                        val = self.context.state_store.get(key)
+                        val = self.context.state_store.get(key) if self.context is not None and self.context.state_store is not None else None
                         self._send_ipc({
                             "type": "state_response",
                             "key": key,
@@ -137,9 +138,11 @@ class SubprocessProvider(IProvider):
                     key = payload.get("key")
                     val = payload.get("value")
                     try:
-                        self.context.state_store.set(key, val)
+                        if self.context is not None and self.context.state_store is not None:
+                            self.context.state_store.set(key, val)
                     except Exception as e:
                         print(f"[SubprocessProvider] Security Violation by {self.manifest.name}: {e}")
+
 
             except json.JSONDecodeError:
                 # Malformed IPC message

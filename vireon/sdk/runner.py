@@ -14,8 +14,10 @@
 
 import subprocess
 import os
+from typing import Optional, List, Any
 
-def run_sandboxed(cmd: list, cwd: str = None, input_data: str = None) -> subprocess.CompletedProcess:
+
+def run_sandboxed(cmd: List[str], cwd: Optional[str] = None, input_data: Optional[str] = None) -> subprocess.CompletedProcess:
     """
     Executes a command inside a lightweight sandbox using bubblewrap (bwrap) to prevent 
     unauthorized filesystem and network access by the spawned process.
@@ -40,7 +42,8 @@ def run_sandboxed(cmd: list, cwd: str = None, input_data: str = None) -> subproc
         text=True
     )
 
-def popen_sandboxed(cmd: list, cwd: str = None, stdout=None, stderr=None) -> subprocess.Popen:
+def popen_sandboxed(cmd: List[str], cwd: Optional[str] = None, stdout: Any = None, stderr: Any = None) -> subprocess.Popen:
+
     """
     Spawns a process asynchronously inside a lightweight sandbox using bubblewrap.
     """

@@ -2,7 +2,8 @@
 # Injected Runtime API Services
 
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Optional
+
 
 class IStateAPI(ABC):
     """Scoped State Access."""
@@ -42,11 +43,12 @@ class RuntimeServices:
     The orchestrator provides only the specific APIs requested in the CapabilityDescriptor.
     """
     def __init__(self, 
-                 state: IStateAPI = None, 
-                 telemetry: ITelemetryAPI = None, 
-                 logging: ILoggingAPI = None,
-                 clock: IClockAPI = None):
+                 state: Optional[IStateAPI] = None, 
+                 telemetry: Optional[ITelemetryAPI] = None, 
+                 logging: Optional[ILoggingAPI] = None,
+                 clock: Optional[IClockAPI] = None):
         self.state = state
         self.telemetry = telemetry
         self.logging = logging
         self.clock = clock
+
