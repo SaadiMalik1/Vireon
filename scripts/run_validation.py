@@ -62,9 +62,10 @@ def generate_validation_reports(benchmarks: dict, evidence_path: str):
         f.write("- **Status:** 100% Machine-Verifiable Evidence Generated.\n")
 
     # 4. Additional standard reports
-    for doc in ["SYSTEM_VERIFICATION.md", "SECURITY_VALIDATION.md", "DATASET_VALIDATION.md", "REPRODUCIBILITY.md", "LIMITATIONS.md", "KNOWN_ISSUES.md"]:
+    for doc in ["SYSTEM_VERIFICATION.md", "PERFORMANCE_REPORT.md", "SECURITY_VALIDATION.md", "DATASET_VALIDATION.md", "REPRODUCIBILITY.md", "LIMITATIONS.md", "KNOWN_ISSUES.md"]:
         with open(doc, "w", encoding="utf-8") as f:
             f.write(f"# {doc.replace('.md', '').replace('_', ' ')}\n\nReport generated dynamically via `python scripts/run_validation.py`.\n")
+
 
 
 def main():
