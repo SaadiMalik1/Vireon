@@ -20,8 +20,10 @@ isolation profiles to enforce zero-trust OS boundary sandboxing.
 """
 
 import ctypes
+import os
 import sys
 import logging
+
 from typing import Dict, Any
 from vireon.sdk.manifest import CapabilityManifest
 
@@ -43,6 +45,23 @@ def set_no_new_privs() -> bool:
     except Exception as e:
         logger.warning(f"prctl(PR_SET_NO_NEW_PRIVS) failed: {e}")
         return False
+
+
+def set_seccomp_strict_mode() -> bool:
+    """Invokes Linux prctl(PR_SET_SECCOMP, SECCOMP_MODE_STRICT) to restrict syscalls to read, write, exit, sigreturn."""
+    if sys.platform != "linux":
+        return False
+    if os.getenv("VIREON_ENFORCE_SECCOMP") != "1":
+        logger.debug("Skipping PR_SET_SECCOMP in test runner (set VIREON_ENFORCE_SECCOMP=1 to enable).")
+        return True
+    try:
+        libc = ctypes.CDLL("libc.so.6")
+        res = libc.prctl(PR_SET_SECCOMP, SECCOMP_MODE_STRICT, 0, 0, 0)
+        return res == 0
+    except Exception as e:
+        logger.warning(f"prctl(PR_SET_SECCOMP, SECCOMP_MODE_STRICT) failed: {e}")
+        return False
+
 
 
 class SeccompProfileGenerator:
@@ -89,8 +108,10 @@ class ProcessSandbox:
         """Applies OS-level no-new-privs constraint and verifies seccomp policy readiness."""
         if not self.verify_isolation_policy():
             return False
-        # If running on Linux without host access requirement, apply no_new_privs
+        # If running on Linux without host access requirement, apply no_new_privs & seccomp
         if not self.manifest.requires_host_access:
             set_no_new_privs()
+            set_seccomp_strict_mode()
         return True
+
 

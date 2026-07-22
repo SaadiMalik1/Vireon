@@ -23,10 +23,10 @@ class CapabilityEngine:
     def __init__(self, config: ExperimentConfig):
         self.config = config
 
-    def validate_manifest(self, manifest: CapabilityManifest) -> bool:
+    def validate_manifest(self, manifest: CapabilityManifest, trusted_public_key=None) -> bool:
         """
-        Validates whether the requested capabilities are allowed by the current
-        ExperimentConfig.
+        Validates whether requested capabilities are allowed by ExperimentConfig,
+        and optionally verifies cryptographic Ed25519 vendor signature.
         """
         if not self.config.security.enabled:
             return True
@@ -35,7 +35,12 @@ class CapabilityEngine:
             if manifest.requires_host_access:
                 return False
 
+        if trusted_public_key and manifest.signature:
+            if not manifest.verify_signature(trusted_public_key):
+                return False
+
         return True
+
 
 class EventBusProxy:
     """Wraps an EventBus, enforcing a provider's pub/sub capabilities."""

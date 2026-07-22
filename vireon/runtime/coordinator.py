@@ -74,8 +74,9 @@ class Coordinator:
         self.emulator: Optional[Any] = None
         self.fw_monitor: Optional[Any] = None
         self.ble_server: Optional[Any] = None
-        self.p300_analyzer: Optional[Any] = None
-        self.total_p300_leakage_events: int = 0
+        self.privacy_scanner: Optional[Any] = None
+        self.total_privacy_events: int = 0
+
         self.e2ee_channel: Optional[Any] = None
         self.biometric_gate: Optional[Any] = None
         self.ble_link: Optional[Any] = None

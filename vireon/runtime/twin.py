@@ -18,7 +18,10 @@ import threading
 from typing import Dict, Any, List, Optional
 from collections import deque
 from vireon.sdk.base_interfaces import ITwin
+from vireon.sdk.schemas.clinical import ClinicalState
 import logging
+
+
 
 logger = logging.getLogger(__name__)
 
@@ -59,20 +62,6 @@ class BatteryState:
 
 
 @dataclass
-class ClinicalState:
-    niss_score: float = 0.0
-    hazard_state: str = "NOMINAL"
-    iso_severity: str = "NEGLIGIBLE"
-    tissue_damage_risk: str = "NONE"
-    clinical_status: str = "Nominal"
-    clinical_alert_active: bool = False
-    clinical_action: str = "MONITOR"
-    dsm5_diagnosis: str = "UNKNOWN"
-    diagnostic_cluster: str = "UNKNOWN"
-    decoder_confidence: float = 1.0
-
-
-@dataclass
 class SimClock:
     mode: ClockMode = ClockMode.VIRTUAL
     tick: int = 0
@@ -82,16 +71,21 @@ class SimClock:
 
 class PhysicsEngine:
     def tick(self, twin: "DigitalTwin", dt: float) -> None:
-        if twin.stimulation_enabled and twin.stimulation_amplitude_ma > 3.0:
-            twin.clinical.tissue_damage_risk = "HIGH"
-            twin.clinical.clinical_alert_active = True
-            if twin.hardware_mode:
-                twin.clinical.hazard_state = "HARDWARE_SHUTDOWN"
-                twin.physics.stimulation_enabled = False
-                twin.physics.stimulation_amplitude_ma = 0.0
-                twin.clinical.clinical_status = "Hardware Failsafe: Thermal shutdown"
-            else:
-                twin.clinical.clinical_status = "Physics Violation: Thermal threshold exceeded"
+        """Physical hardware constraint update (battery sag, temperature delta, hardware failsafe)."""
+        if twin.physics.stimulation_enabled and twin.physics.stimulation_amplitude_ma > 0.0:
+            twin.battery.temperature_celsius += 0.001 * twin.physics.stimulation_amplitude_ma * dt
+            if twin.physics.stimulation_amplitude_ma > 3.0:
+                twin.clinical.tissue_damage_risk = "HIGH"
+                twin.clinical.clinical_alert_active = True
+                if twin.hardware_mode:
+                    twin.clinical.hazard_state = "HARDWARE_SHUTDOWN"
+                    twin.physics.stimulation_enabled = False
+                    twin.physics.stimulation_amplitude_ma = 0.0
+                    twin.clinical.clinical_status = "Hardware Failsafe: Thermal shutdown"
+                else:
+                    twin.clinical.clinical_status = "Physics Violation: Thermal threshold exceeded"
+
+
 
 
 class DigitalTwin(ITwin):
@@ -239,9 +233,12 @@ class DigitalTwin(ITwin):
             self.clock.tick += 1
             if dt > 0:
                 self.battery.battery_level = max(0.0, self.battery.battery_level - 0.001 * dt)
+            self.history.append((t, self.clock.tick))
 
     def get_sim_clock(self) -> float:
         return self.clock.sim_time
+
+
 
     def get_state(self) -> Dict[str, Any]:
         with self._lock:
