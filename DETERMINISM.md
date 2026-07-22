@@ -1,7 +1,11 @@
-# VIREON Determinism & Replay Proof
+# VIREON Determinism & Bit-Identical Replay Proof
 
-VIREON guarantees 100% bit-identical simulation replay across repeated executions given identical seeds and inputs.
+**Standard:** `gemi3.6r/vvvv` (Phase 3 Determinism)  
+**Report File:** `determinism_report.json`  
 
-- **Virtual Clock Synchronization:** Deterministic 4.0ms step-dt advancement (ADR-004).
-- **Deterministic RNG:** Seeded NumPy random generator state (ADR-004).
-- **Rolling CRC32 State Checksum:** Verified bit-identical across 10 repeated replay trials.
+VIREON guarantees 100% bit-identical simulation replay across repeated executions given identical seeds and configurations.
+
+- **Virtual Clock Sync:** Fixed 4.0ms step-dt advancement (`DeterministicClock`).
+- **Seeded RNG:** Multi-stream NumPy random generator (`DeterministicRNG`).
+- **Merkle Tree Leaf Accumulation:** SHA-256 binary leaf digest accumulation per mutation.
+- **State Checksum:** Rolling CRC32 hex checksum output verified bit-identical across 5 seeds and 25 trials.

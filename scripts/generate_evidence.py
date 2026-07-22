@@ -13,7 +13,7 @@
 # limitations under the License.
 
 """
-Phase 9 Automated Signed Evidence Package Generator.
+Exhaustive Phase 9 Cryptographic Signed Evidence Package Generator.
 """
 
 import os
@@ -22,9 +22,10 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 import json
 import time
+import hashlib
 import platform
-
 import subprocess
+from pathlib import Path
 from cryptography.hazmat.primitives.asymmetric import ed25519
 from vireon.runtime.merkle import MerkleTree
 from vireon.runtime.trace_bundle import TraceBundle
@@ -38,22 +39,40 @@ def get_git_commit_sha() -> str:
         return "unknown_commit"
 
 
+def compute_directory_source_checksum(directory: str) -> str:
+    """Computes a combined SHA-256 digest of all source files in a directory."""
+    hasher = hashlib.sha256()
+    for root, _, files in sorted(os.walk(directory)):
+        for fname in sorted(files):
+            if fname.endswith((".py", ".rs", ".toml", ".h", ".c")):
+                fpath = os.path.join(root, fname)
+                with open(fpath, "rb") as f:
+                    hasher.update(f.read())
+    return hasher.hexdigest()
+
+
 def generate_system_evidence_package(output_dir: str = "evidence") -> str:
-    """Generates cryptographically signed machine-readable evidence artifact in evidence/ (Phase 9)."""
+    """Generates an exhaustive, cryptographically signed machine-readable evidence artifact (Phase 9)."""
     os.makedirs(output_dir, exist_ok=True)
     git_sha = get_git_commit_sha()
 
-    # Collect platform metadata
+    vireon_src_digest = compute_directory_source_checksum("vireon")
+    neurodsl_src_digest = compute_directory_source_checksum("crates/neurodsl")
+
+    # Collect exhaustive system and build metadata
     meta = {
         "git_commit": git_sha,
         "timestamp": time.time(),
+        "vireon_source_sha256": vireon_src_digest,
+        "neurodsl_source_sha256": neurodsl_src_digest,
         "python_version": sys.version,
         "platform": platform.platform(),
         "processor": platform.processor(),
-        "system": platform.system()
+        "system": platform.system(),
+        "architecture": platform.architecture()[0]
     }
 
-    # Build Merkle tree from system metadata
+    # Build Merkle tree from system metadata and digests
     leaf_bytes = json.dumps(meta, sort_keys=True).encode("utf-8")
     tree = MerkleTree([leaf_bytes])
 

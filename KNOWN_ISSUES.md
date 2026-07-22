@@ -1,3 +1,3 @@
-# KNOWN ISSUES
+# VIREON Known Issues & Tracked Deprecations
 
-Report generated dynamically via `python scripts/run_validation.py`.
+- GitHub Actions runner deprecation warning for Node 20 (handled via runner forced Node 24 policy).

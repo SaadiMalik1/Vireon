@@ -13,49 +13,80 @@
 # limitations under the License.
 
 """
-Phase 3 Determinism Validation & Bit-Identical Replay Suite.
+Exhaustive Phase 3 Multi-Seed Bit-Identical Determinism & Replay Proof Suite.
 """
 
 import json
 import hashlib
+from typing import Dict, List
 from vireon.runtime.rng import DeterministicRNG
 from vireon.runtime.clock import DeterministicClock, ClockMode
 from vireon.runtime.event_bus import EventBus
 from vireon.runtime.state_store import StateStore
 
 
-def run_single_simulation_stream(seed: int = 42, steps: int = 100) -> str:
-    """Executes a synthetic simulation run and returns SHA-256 state hash."""
+def run_simulation_stream(seed: int = 42, steps: int = 500) -> Dict[str, str]:
+    """
+    Executes a multi-channel deterministic simulation tick loop and 
+    returns SHA-256 state hashes and final rolling CRC32 checksums.
+    """
     clock = DeterministicClock(mode=ClockMode.VIRTUAL, step_dt_ms=4.0)
     rng = DeterministicRNG(seed=seed)
     bus = EventBus()
     store = StateStore(bus)
 
-    history = []
-    for _ in range(steps):
+    history: List[tuple] = []
+    for step in range(steps):
         clock.advance()
-        val = rng.normal(loc=0.0, scale=1.0)
-        store.set("signal", float(val))
-        history.append((clock.sim_time, val, store.get_state_checksum()))
+        val_ch0 = rng.normal(loc=0.0, scale=1.0)
+        val_ch1 = rng.uniform(low=-10.0, high=10.0)
+        store.set(f"signal_ch0", float(val_ch0))
+        store.set(f"signal_ch1", float(val_ch1))
+        
+        state_crc = store.get_state_checksum()
+        history.append((step, clock.sim_time, val_ch0, val_ch1, state_crc))
 
     canonical_bytes = json.dumps(history, sort_keys=True).encode("utf-8")
-    return hashlib.sha256(canonical_bytes).hexdigest()
+    full_sha = hashlib.sha256(canonical_bytes).hexdigest()
+    final_crc = store.get_state_checksum()
+
+    return {
+        "seed": seed,
+        "steps": steps,
+        "sha256_hash": full_sha,
+        "final_crc32_hex": final_crc
+    }
 
 
-def test_bit_identical_replay_reproducibility():
-    """Proves Phase 3 requirement: Same seed & steps produce bit-identical state hashes across 10 runs."""
-    baseline_hash = run_single_simulation_stream(seed=1337, steps=250)
+def test_bit_identical_replay_reproducibility_across_seeds():
+    """Proves Phase 3 requirement: Bit-identical state hash reproduction for seeds 42, 1337, 9999."""
+    seeds_to_test = [42, 100, 777, 1337, 9999]
+    report_data = {}
 
-    for run_idx in range(9):
-        current_hash = run_single_simulation_stream(seed=1337, steps=250)
-        assert current_hash == baseline_hash, f"Determinism failure on replay run {run_idx + 1}"
+    for seed in seeds_to_test:
+        baseline = run_simulation_stream(seed=seed, steps=300)
+        report_data[f"seed_{seed}"] = baseline
+
+        # Repeat 5 trials per seed to verify 100% bit-identical output
+        for trial in range(5):
+            trial_res = run_simulation_stream(seed=seed, steps=300)
+            assert trial_res["sha256_hash"] == baseline["sha256_hash"], (
+                f"Determinism drift detected for seed {seed} on trial {trial + 1}"
+            )
+            assert trial_res["final_crc32_hex"] == baseline["final_crc32_hex"], (
+                f"CRC32 checksum drift detected for seed {seed} on trial {trial + 1}"
+            )
+
+    # Save determinism_report.json
+    with open("determinism_report.json", "w", encoding="utf-8") as f:
+        json.dump(report_data, f, indent=2)
 
 
 def test_rng_reseed_identity():
-    rng1 = DeterministicRNG(seed=999)
-    seq1 = [rng1.uniform() for _ in range(50)]
+    rng1 = DeterministicRNG(seed=8888)
+    seq1 = [rng1.uniform() for _ in range(100)]
 
-    rng2 = DeterministicRNG(seed=999)
-    seq2 = [rng2.uniform() for _ in range(50)]
+    rng2 = DeterministicRNG(seed=8888)
+    seq2 = [rng2.uniform() for _ in range(100)]
 
     assert seq1 == seq2

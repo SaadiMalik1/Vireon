@@ -1,0 +1,32 @@
+{
+  "seed_42": {
+    "seed": 42,
+    "steps": 300,
+    "sha256_hash": "af87d21c13b0a74a5f472757cc578932ebda42e04c3fb1e57448bb25e6628cb6",
+    "final_crc32_hex": "ee6c6072"
+  },
+  "seed_100": {
+    "seed": 100,
+    "steps": 300,
+    "sha256_hash": "123c0e32eff01085d7bd52f301543913324a5decbaa9f74c884a7e99289fd197",
+    "final_crc32_hex": "d99a2f56"
+  },
+  "seed_777": {
+    "seed": 777,
+    "steps": 300,
+    "sha256_hash": "549adf68b8a868caad09b41c5d49fa9c23e1660c0d0dcfa8d056e1b8bd069859",
+    "final_crc32_hex": "3db6bc34"
+  },
+  "seed_1337": {
+    "seed": 1337,
+    "steps": 300,
+    "sha256_hash": "930f812a1af791aad6bacbf454ad61e75ea676584d8d79fa16347634bb78f0ac",
+    "final_crc32_hex": "15f2e6bb"
+  },
+  "seed_9999": {
+    "seed": 9999,
+    "steps": 300,
+    "sha256_hash": "547ce63751b7621f433678ec2f990d32f527c09306474d353a9f0f92086fed1a",
+    "final_crc32_hex": "d5c41b95"
+  }
+}

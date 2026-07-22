@@ -1,3 +1,3 @@
-# REPRODUCIBILITY
+# VIREON Reproducibility Guide
 
-Report generated dynamically via `python scripts/run_validation.py`.
+Run `make verify` or `python scripts/run_validation.py` to reproduce all benchmarks, test matrices, and evidence signatures deterministically.

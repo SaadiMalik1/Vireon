@@ -1,3 +1,4 @@
-# LIMITATIONS
+# VIREON System Limitations
 
-Report generated dynamically via `python scripts/run_validation.py`.
+- Real-time RTOS preemption requires Linux kernel `PREEMPT_RT` patch.
+- Wasmtime sandbox module is designated as RFC-001 specification.

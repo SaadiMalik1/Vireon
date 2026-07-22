@@ -38,10 +38,11 @@ def test_synthetic_generator_reproducibility():
     gen1 = SyntheticDataGenerator(seed=777)
     gen2 = SyntheticDataGenerator(seed=777)
 
-    chunk1 = gen1.generate_chunk(duration_sec=0.5, noise_level=0.2, packet_loss_rate=0.05)
-    chunk2 = gen2.generate_chunk(duration_sec=0.5, noise_level=0.2, packet_loss_rate=0.05)
+    chunk1 = gen1.generate_eeg_stream(duration_sec=0.5, noise_level=0.2, packet_loss_rate=0.05)
+    chunk2 = gen2.generate_eeg_stream(duration_sec=0.5, noise_level=0.2, packet_loss_rate=0.05)
 
     assert np.array_equal(chunk1["data"], chunk2["data"])
+
 
 
 def test_repeated_provider_registration_rejection():
