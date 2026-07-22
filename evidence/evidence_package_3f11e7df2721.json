@@ -1,0 +1,17 @@
+{
+  "trace_bundle": {
+    "merkle_root": "8faf6032bad5ab1e89cb00f6c7112f22b8b2c0f57ed573e1c1107686ea40753a",
+    "pin_hash": "3f11e7df2721",
+    "metadata": {
+      "git_commit": "3f11e7df2721e20c66e9cc291f0ba75c6dde705b",
+      "timestamp": 1784709932.030373,
+      "python_version": "3.14.6 (main, Jun 23 2026, 18:14:05) [GCC 16.1.1 20260430]",
+      "platform": "Linux-7.1.3-2-cachyos-x86_64-with-glibc2.43",
+      "processor": "",
+      "system": "Linux"
+    },
+    "signature_hex": "3db8c03e6812e07f280fba36b2d3c4e1e0351c8f6d911e562031b9a8d4884a97f78935bb3d2c9d86a98e4cb94a6fe069334c1a8d4d1733b97b458b3404cb360e",
+    "public_key_hex": "917e124a1f9976d928035120a41394ec3289e0207062e7237fc8edbfbf52e9dc",
+    "signature_verified": true
+  }
+}

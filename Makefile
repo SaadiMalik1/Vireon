@@ -1,4 +1,4 @@
-.PHONY: install test test-integration lint docs sbom docker clean
+.PHONY: install test test-integration lint docs sbom docker verify validate clean
 
 install:
 	pip install -e ".[dev]"
@@ -10,6 +10,12 @@ test:
 
 test-integration:
 	pytest tests/test_integration.py
+
+verify:
+	python scripts/run_validation.py
+
+validate:
+	python scripts/run_validation.py
 
 lint:
 	ruff check .
@@ -28,3 +34,4 @@ docker:
 
 clean:
 	rm -rf dist build *.egg-info .pytest_cache .mypy_cache .ruff_cache target sbom.json
+
