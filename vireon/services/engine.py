@@ -39,13 +39,15 @@ class ReplayEngine:
     """
 
     def __init__(self,
-                 state_store,
-                 attack_engine,
+                 state_store=None,
+                 attack_engine=None,
                  orchestrator: Optional[VireonOrchestrator] = None,
                  provider=None, # Legacy support
                  seed: Optional[int] = None,
-                 loop_dataset: bool = True):
-        self.state_store = state_store
+                 loop_dataset: bool = True,
+                 twin=None):
+        self.state_store = state_store or twin
+        self.twin = twin or state_store
         self.attack_engine = attack_engine
         self.orchestrator = orchestrator
         self.provider = provider
@@ -310,14 +312,13 @@ class ReplayEngine:
             
         new_mod: Any = None
         try:
+            attacks_mod = importlib.import_module("providers.threat_models.attacks")
+            AttackFactory = getattr(attacks_mod, "AttackFactory")
             if attack_name in ["noise", "signal_injection"]:
-                from providers.threat_models.attacks import AttackFactory
                 new_mod = AttackFactory.create_dynamic_attack("SI-001", [0, 1])
             elif attack_name in ["drift", "data_manipulation"]:
-                from providers.threat_models.attacks import AttackFactory
                 new_mod = AttackFactory.create_dynamic_attack("DM-001", [0, 1])
             elif attack_name == "dos":
-                from providers.threat_models.attacks import AttackFactory
                 new_mod = AttackFactory.create_dynamic_attack("DS-001", [0, 1])
             else:
                 try:

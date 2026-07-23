@@ -252,12 +252,14 @@ class SecurityEngine:
 
     from vireon.sdk.state import IStateStore
 
-    def __init__(self, state_store: IStateStore, event_bus: Optional[IEventBus] = None,
+    def __init__(self, state_store: Optional[IStateStore] = None, event_bus: Optional[IEventBus] = None,
                  rms_high_threshold: float = 120.0,
                  rms_low_threshold: float = 0.5,
                  beta_power_threshold: float = 35.0,
-                 seed: Optional[int] = None):
-        self.state_store = state_store
+                 seed: Optional[int] = None,
+                 twin: Optional[Any] = None):
+        self.state_store = state_store or twin
+        self.twin = twin or state_store
         self.event_bus = event_bus
 
         # Configurable detection thresholds

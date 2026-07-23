@@ -57,7 +57,8 @@ class SimulationBuilder:
             elif attack_name == "stimulation_leak":
                 print("[VIREON] Injecting Stimulation Leak Attack")
                 if self.config.security.enabled:
-                    from vireon.runtime.detection import SecurityEngine
+                    import importlib
+                    SecurityEngine = getattr(importlib.import_module("providers.ids.detection"), "SecurityEngine")
                     from vireon.runtime.clinical import NeuroIPS
                     temp_ids = SecurityEngine(self.c.twin)
                     temp_ips = NeuroIPS(self.c.twin, temp_ids)

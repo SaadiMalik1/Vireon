@@ -25,7 +25,8 @@ Enables:
 import sys
 import os
 import click
-from vireon.runtime.validation import ValidationRunner
+import importlib
+ValidationRunner = getattr(importlib.import_module("providers.clinical.validation"), "ValidationRunner")
 
 # Ensure the project root is in Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -48,7 +49,7 @@ def cli():
 def run(config_file, duration, board, serial_port, dataset, attack, seed):
     """Run a headless simulation experiment."""
     from vireon.runtime.configuration import load_config, ExperimentConfig
-    from vireon.runtime.orchestrator import Orchestrator
+    from vireon.runtime.coordinator import Coordinator
 
     if config_file and os.path.exists(config_file):
         click.echo(f"[VIREON] Loading experiment config: {config_file}")
@@ -65,10 +66,14 @@ def run(config_file, duration, board, serial_port, dataset, attack, seed):
     if seed is not None:
         config.seed = seed
 
-    orchestrator = Orchestrator(config)
-    orchestrator.setup()
-    orchestrator.run()
-    orchestrator.teardown()
+    coordinator = Coordinator(config)
+    coordinator.setup()
+    try:
+        coordinator.run()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        coordinator.teardown()
 
 
 @cli.command()

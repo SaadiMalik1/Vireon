@@ -173,7 +173,7 @@ class CoordinatorCallbacks:
                 stim_amp = self.c.twin.stimulation_amplitude_ma
                 clinical_anomalies = self.c.ids.analyze_clinical(curr_pow, stim_active, stim_amp)
                 self.c.ips.mitigate_pathological_sync(clinical_anomalies)
-        else:
+        elif self.c.clinical_sim is not None:
             self.c.clinical_sim.process_signal(data_to_process, eeg_channels, sample_rate)
 
         # 3.5 Biometric Authentication
