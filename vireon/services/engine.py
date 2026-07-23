@@ -258,7 +258,13 @@ class ReplayEngine:
         return np.full((num_channels, num_samples_per_chunk), np.nan)
 
     def _dispatch_update(self, raw_data: np.ndarray, eeg_channels: List[int], sr: int, actual_dt: float, pending_futures: Optional[set] = None, max_pending: int = 20):
-        mutated_data = self.attack_engine.apply_attacks(raw_data, eeg_channels, sr, self.rng)
+        if hasattr(self.attack_engine, "apply_attacks"):
+            mutated_data = self.attack_engine.apply_attacks(raw_data, eeg_channels, sr, self.rng)
+        elif hasattr(self.attack_engine, "apply"):
+            mutated_data = self.attack_engine.apply(raw_data, eeg_channels, sr, self.state_store, self.rng)
+        else:
+            mutated_data = raw_data
+
         with self._buffer_lock:
             self._current_buffer = mutated_data
 
@@ -292,29 +298,36 @@ class ReplayEngine:
         if not hasattr(self, '_injected_modifiers'):
             self._injected_modifiers: list[Any] = []
         
-        with self.attack_engine.lock:
-            for mod in self._injected_modifiers:
-                if mod in self.attack_engine.modifiers:
-                    self.attack_engine.remove_modifier(mod)
-            self._injected_modifiers.clear()
+        if hasattr(self.attack_engine, 'lock') and hasattr(self.attack_engine, 'modifiers'):
+            with self.attack_engine.lock:
+                for mod in self._injected_modifiers:
+                    if mod in self.attack_engine.modifiers:
+                        self.attack_engine.remove_modifier(mod)
+                self._injected_modifiers.clear()
             
         if attack_name == "none":
             return
             
         new_mod: Any = None
-        if attack_name == "noise":
-            from vireon.runtime.attack import NoiseInjectionAttack
-            new_mod = NoiseInjectionAttack(target_channels=[0, 1])
-        elif attack_name == "drift":
-            from vireon.runtime.attack import SignalDriftAttack
-            new_mod = SignalDriftAttack(target_channels=[0, 1])
-        elif attack_name == "temporal_evasion":
-            from vireon.runtime.attack import TemporalEvasionAttack
-            new_mod = TemporalEvasionAttack(target_channels=[0, 1])
-        elif attack_name == "session_replay":
-            from vireon.runtime.attack import SessionReplayAttack
-            new_mod = SessionReplayAttack(target_channels=[0, 1])
+        try:
+            if attack_name in ["noise", "signal_injection"]:
+                from providers.threat_models.attacks import AttackFactory
+                new_mod = AttackFactory.create_dynamic_attack("SI-001", [0, 1])
+            elif attack_name in ["drift", "data_manipulation"]:
+                from providers.threat_models.attacks import AttackFactory
+                new_mod = AttackFactory.create_dynamic_attack("DM-001", [0, 1])
+            elif attack_name == "dos":
+                from providers.threat_models.attacks import AttackFactory
+                new_mod = AttackFactory.create_dynamic_attack("DS-001", [0, 1])
+            else:
+                try:
+                    from vireon.runtime.attack import NoiseInjectionAttack
+                    new_mod = NoiseInjectionAttack(target_channels=[0, 1])
+                except ImportError:
+                    pass
+        except Exception as e:
+            logger.warning(f"Could not inject attack '{attack_name}': {e}")
             
-        if new_mod:
+        if new_mod and hasattr(self.attack_engine, 'add_modifier'):
             self.attack_engine.add_modifier(new_mod)
             self._injected_modifiers.append(new_mod)
