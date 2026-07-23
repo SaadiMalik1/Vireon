@@ -1,3 +1,6 @@
+> [!NOTE]
+> **Notice:** This document is an internally generated, AI-assisted self-review produced during development. It is not an independent or third-party audit.
+
 # VIREON Architecture Validation Report
 
 This report evaluates the VIREON ecosystem against its 8 fundamental architectural constraints (`AT-01` to `AT-08`), dependency inversions, and potential circular dependencies.

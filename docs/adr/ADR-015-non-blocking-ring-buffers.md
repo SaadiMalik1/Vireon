@@ -1,7 +1,7 @@
 # ADR 015: Non-Blocking Ring Buffers with Overwrite
 
 ## Status
-Accepted — Deferred (Phase C)
+Accepted — Implemented (v1.1.0 — Lockless SPSC RingBuffer with overwrite drop counter)
 
 ## Context
 Providers communicate with each other via point-to-point SPSC (Single-Producer Single-Consumer) queues negotiated by the Kernel. If a low-priority logging provider is too slow to read telemetry from a high-priority hardware emulator, the channel's memory buffer will fill up. If the hardware emulator uses a blocking write when the buffer is full, it will halt (Priority Inversion), miss its real-time Wall-Time deadline, and crash the simulation.

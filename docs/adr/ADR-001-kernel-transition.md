@@ -1,7 +1,7 @@
 # ADR 001: Kernel Transition (SDK to Validation OS)
 
 ## Status
-Accepted — Deferred (Phase B)
+Accepted — Implemented (v1.1.0 — Thin domain-agnostic orchestrator & SDK)
 
 ## Context
 VIREON was originally conceived as a software development kit (SDK) to help neurotechnology developers write simulation scripts. However, this has resulted in vendors leaking device-specific logic into the orchestrator and treating the `vireon` Python module as a library they can embed in their proprietary clinical applications. This violates the foundational requirement of strict isolation and vendor neutrality. 

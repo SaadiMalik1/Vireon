@@ -1,3 +1,6 @@
+> [!NOTE]
+> **Notice:** This document is an internally generated, AI-assisted self-review produced during development. It is not an independent or third-party audit.
+
 # VIREON Ecosystem Final Constitutional Validation
 
 This document simulates a stringent constitutional review of the VIREON ecosystem from the perspective of critical external stakeholders.

@@ -1,7 +1,7 @@
 # ADR 014: Merkle Tree Cryptographic Tracing
 
 ## Status
-Accepted — Implemented (StateStore auto-append & Ed25519 trace signing)
+Accepted — Implemented (v1.1.0 — StateStore Merkle leaf accumulation & Ed25519 trace signing)
 
 
 ## Context

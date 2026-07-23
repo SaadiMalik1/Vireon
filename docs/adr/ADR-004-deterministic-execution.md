@@ -1,7 +1,7 @@
 # ADR 004: Strict Deterministic Execution
 
 ## Status
-Accepted — Implemented (v2.0.0-alpha.1)
+Accepted — Implemented (v1.1.0 — DeterministicClock & DeterministicRNG)
 
 ## Context
 Scientific reproducibility is impossible if simulation outcomes rely on non-deterministic factors like host CPU scheduling, wall-time clocks, or locally seeded random number generators (RNGs) within providers. A core objective of the ecosystem is to generate reproducible scientific trace bundles.

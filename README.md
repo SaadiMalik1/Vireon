@@ -1,12 +1,25 @@
-# VIREON Runtime & SDK
+# VIREON Core Runtime & SDK
 
 **Vendor-Neutral Neurotechnology Security Validation Framework**
 
-VIREON is the core runtime engine for simulating, analyzing, and validating neurotechnology systems (BCIs, EEG devices, DBS closed-loop implants). It provides a deterministic execution environment, process isolation, neuroethics guardrails, and cryptographic evidence tracing.
+> **Maturity Notice:** VIREON is currently a **Pre-Alpha Research Prototype** designed for simulated BCI testing, zero-trust sandboxing experiments, and deterministic digital twin modeling. It has not undergone third-party security audits, FDA regulatory submission, or hardware-in-the-loop validation on physical implants.
 
 ---
 
-## Architecture Overview
+## 1. Current State (v1.1.0)
+
+VIREON provides a Python/Rust runtime engine for simulating and analyzing neurotechnology workloads (BCIs, EEG streams, closed-loop DBS models):
+
+- **Deterministic Execution:** Virtual step-dt advancement via `DeterministicClock` and multi-stream `DeterministicRNG`.
+- **Process Sandboxing:** Linux `prctl(PR_SET_NO_NEW_PRIVS)` and Seccomp profile generation (`sandbox.py`).
+  - *Security Disclosure:* OS-level `SECCOMP_MODE_STRICT` enforcement is disabled by default in test environments and requires `VIREON_ENFORCE_SECCOMP=1` to be set.
+- **Capability Isolation:** Proxy wrappers (`EventBusProxy`, `StateStoreProxy`) enforcing topic whitelists and manifest authorization. Optional Ed25519 vendor signature verification when `trusted_public_key` is supplied.
+- **NeuroDSL Engine:** Embedded Rust bytecode compiler (`forge`) and VM (`scribe`) wrapped via PyO3 C-extensions (`crates/neurodsl`).
+- **Test Suite Status:** 66 Python tests passed (`pytest`), 44 Rust tests passed (`cargo test`). Total: 110 passed, 0 failed.
+
+---
+
+## 2. Architecture Overview
 
 ```
                         ┌─────────────────────────────────┐
@@ -21,7 +34,7 @@ VIREON is the core runtime engine for simulating, analyzing, and validating neur
                                 │                 │
             ┌───────────────────▼──┐           ┌──▼───────────────────┐
             │   Bifurcated Clock   │           │    State Store &     │
-            │   Scheduler (ADR-005)│           │  DigitalTwin (Rule 27)│
+            │   Scheduler (ADR-005)│           │  DigitalTwin         │
             └──────────────────────┘           └──────────────────────┘
                                 │
                         ┌───────▼─────────────────────────┐
@@ -32,7 +45,15 @@ VIREON is the core runtime engine for simulating, analyzing, and validating neur
 
 ---
 
-## Prerequisites & Installation
+## 3. Vision & Long-Term Roadmap
+
+- **Kernel eBPF Loading:** Translating YAML capability manifests into direct Linux kernel eBPF bytecode attachments (ADR-006 proposal).
+- **Physical HIL Integration:** Connecting digital twin software models to physical PCIe/SPI neural recording interfaces and RTOS hardware pins.
+- **Zero-Knowledge Telemetry:** Implementing cryptographic zero-knowledge proof specifications (RFC-006) for anonymized clinical trial verification.
+
+---
+
+## 4. Prerequisites & Installation
 
 - **Python**: 3.10+
 - **Rust**: Stable toolchain (`cargo`, `rustc`)
@@ -43,49 +64,24 @@ git clone https://github.com/SaadiMalik1/Vireon.git
 cd Vireon
 
 # Build Rust extensions and install Python dependencies
-make install
+.venv/bin/pip install --no-deps -e .
 ```
 
 ---
 
-## Quick Start
-
-```python
-from vireon.runtime.twin import DigitalTwin
-from vireon.runtime.event_bus import EventBus
-from vireon.sdk.events import Event
-
-# Initialize the Digital Twin state composition
-twin = DigitalTwin(device_id="openbci_cyton", sample_rate=250)
-
-# Initialize Event Bus
-bus = EventBus()
-
-def telemetry_handler(event: Event):
-    print(f"[{event.timestamp}s] Received {event.topic}: {event.data}")
-
-bus.subscribe("telemetry.chunk", telemetry_handler)
-
-# Advance simulation clock
-twin.set_sim_clock(0.004)
-bus.publish(Event(topic="telemetry.chunk", data={"amplitude": 12.5}, timestamp=twin.get_sim_clock()))
-bus.flush()
-```
-
----
-
-## Verification & Testing
+## 5. Verification & Testing
 
 ```bash
-make test       # Runs pytest + cargo test --workspace
-make lint       # Runs ruff, mypy, cargo clippy, cargo fmt
-make sbom       # Generates CycloneDX SBOM artifact
+make test       # Runs pytest (66 tests) + cargo test --workspace (44 tests)
+make lint       # Runs ruff check .
+make verify     # Executes full evidence generation pipeline
 ```
 
 ---
 
-## Related Projects & Documentation
+## 6. Related Documentation
 
 - **[vireon-lab](https://github.com/SaadiMalik1/vireon-lab)**: Interactive educational UI, Streamlit dashboard, and attack tutorials.
-- **[Architecture Decision Records](docs/adr/)**: Specifications for all 15 system ADRs.
+- **[Architectural Decision Records](docs/adr/)**: Specifications for system ADRs (ADR-001 through ADR-016).
+- **[System Limitations](LIMITATIONS.md)** & **[Known Issues](KNOWN_ISSUES.md)**.
 - **[Governance](GOVERNANCE.md)** & **[Contributing Guidelines](CONTRIBUTING.md)**.

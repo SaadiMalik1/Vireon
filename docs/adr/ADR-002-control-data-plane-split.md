@@ -1,7 +1,7 @@
 # ADR 002: Control Plane vs Data Plane Split
 
 ## Status
-Accepted — Deferred (Phase C)
+Accepted — Implemented (v1.1.0 — EventBus control plane & RingBuffer/SharedMemory data plane)
 
 ## Context
 Neuro-simulations require high-frequency, low-latency telemetry data (e.g., raw neural spikes sampled at 30kHz) mixed with low-frequency control messages (e.g., "start simulation", "capability requested"). The current architecture multiplexes both streams over a single Python `asyncio` event bus, causing unacceptable latency and jitter, violating the lock-free execution requirements of a true research platform.

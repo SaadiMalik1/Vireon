@@ -1,7 +1,7 @@
 # ADR 008: CRDT State Store
 
 ## Status
-Accepted — Deferred (Phase D)
+Accepted — Implemented (v1.1.0 — GCounter & LWWRegister in crdt_store.py)
 
 ## Context
 The ecosystem maintains a global "Digital Twin" state graph representing the physical environment (e.g., neural tissue, device orientation). If two isolated plugins attempt to mutate this state graph simultaneously, the Kernel must resolve the mutation deterministically.

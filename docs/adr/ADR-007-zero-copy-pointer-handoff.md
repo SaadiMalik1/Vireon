@@ -1,7 +1,7 @@
 # ADR 007: Zero-Copy Pointer Handoff
 
 ## Status
-Accepted — Deferred (Phase C)
+Accepted — Implemented (v1.1.0 — SharedMemoryBuffer POSIX zero-copy data plane)
 
 ## Context
 The Data Plane handles high-frequency neuro-telemetry (e.g., 30kHz multi-channel spike data). Inter-Process Communication (IPC) via gRPC or even raw sockets introduces serialization and context-switching overhead. If data is serialized and copied across memory spaces, the orchestrator will bottleneck and fail real-time validation constraints.

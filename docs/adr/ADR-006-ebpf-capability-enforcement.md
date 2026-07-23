@@ -1,7 +1,7 @@
 # ADR 006: eBPF Capability Enforcement
 
 ## Status
-Accepted — Implemented (`prctl(PR_SET_NO_NEW_PRIVS)` & `set_seccomp_strict_mode`)
+Partially implemented — Seccomp BPF profile generator & prctl strict mode implemented (requires VIREON_ENFORCE_SECCOMP=1); kernel eBPF bytecode loading proposed.
 
 
 ## Context

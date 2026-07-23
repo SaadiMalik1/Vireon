@@ -1,6 +1,8 @@
+> [!NOTE]
+> **Notice:** This document is an internally generated, AI-assisted self-review produced during development. It is not an independent or third-party audit.
+
 # VIREON System Performance & Latency Benchmarks
 
-**Standard:** `gemi3.6r/vvvv` (Phase 4 Benchmarks)  
 **Evidence Package:** `evidence/evidence_package_379fe46ac66d.json`  
 
 ## Performance Metrics Table

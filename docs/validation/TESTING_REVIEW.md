@@ -1,3 +1,6 @@
+> [!NOTE]
+> **Notice:** This document is an internally generated, AI-assisted self-review produced during development. It is not an independent or third-party audit.
+
 # VIREON Ecosystem Testing Architecture Review
 
 This document audits the testing methodologies across the VIREON ecosystem to ensure medical-grade, reproducible validation.

@@ -1,7 +1,7 @@
 # ADR 012: Unidirectional Memory Protections
 
 ## Status
-Accepted — Deferred (Phase D)
+Accepted — Implemented (v1.1.0 — UnidirectionalMemoryGuard NumPy array write protection)
 
 ## Context
 ADR-007 introduced Zero-Copy Pointer Handoff via shared memory rings. This creates a classic Time-of-Check to Time-of-Use (TOCTOU) vulnerability. A malicious plugin can write to the ring, wait for the Kernel to validate the headers/sizes, and then mutate the payload *before* the Kernel acts on it, leading to memory corruption or arbitrary code execution in the Kernel.

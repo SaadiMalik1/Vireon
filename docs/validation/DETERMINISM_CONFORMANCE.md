@@ -1,3 +1,6 @@
+> [!NOTE]
+> **Notice:** This document is an internally generated, AI-assisted self-review produced during development. It is not an independent or third-party audit.
+
 # Determinism Conformance Report (v1.0)
 
 ## 1. Compliance Status

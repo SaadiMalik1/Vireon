@@ -1,7 +1,7 @@
 # ADR 011: Epoched CRDT Garbage Collection
 
 ## Status
-Accepted — Deferred (Phase D)
+Accepted — Implemented (v1.1.0 — CRDTStateStore epoched tombstone garbage collection)
 
 ## Context
 ADR-008 mandates CRDTs for the State Store. CRDTs track causality via metadata (e.g., Vector Clocks, tombstones). In a 30kHz neuro-simulation, maintaining infinite causality history for every node in the State Graph will trigger Out-Of-Memory (OOM) failures within seconds due to metadata explosion.

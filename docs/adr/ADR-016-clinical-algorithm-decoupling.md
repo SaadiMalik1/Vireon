@@ -1,7 +1,7 @@
 # ADR 016: Clinical Algorithm Decoupling from Runtime Kernel
 
 ## Status
-Accepted — Implemented
+Accepted — Implemented (v1.1.0 — ClinicalState schema relocation & IClinicalProviderV1 delegation)
 
 ## Context
 Constitution Invariant 2 mandates: "The runtime shall never contain clinical algorithms."

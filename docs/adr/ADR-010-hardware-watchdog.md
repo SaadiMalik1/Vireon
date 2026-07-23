@@ -1,7 +1,7 @@
 # ADR 010: Hardware Watchdog Precision
 
 ## Status
-Accepted — Deferred (Phase E)
+Accepted — Implemented (v1.1.0 — Orchestrator deadline kicking & watchdog timeout handling)
 
 ## Context
 Untrusted provider plugins can enter infinite loops (e.g., executing dense neural decoders). Currently, the Kernel relies on asynchronous gRPC or IPC health checks to verify a provider is alive. If a provider is executing a heavy workload on the CPU, these application-level health checks might time out, causing the Kernel to assume the provider is dead when it is actually just slow, or conversely, waiting too long before terminating a truly deadlocked provider.

@@ -1,7 +1,7 @@
 # ADR 005: Bifurcated Clock Scheduler
 
 ## Status
-Accepted — Implemented (v2.0.0-alpha.2)
+Accepted — Implemented (v1.1.0 — BifurcatedScheduler & DeterministicClock)
 
 ## Context
 The VIREON ecosystem demands two contradictory clocking modes: 

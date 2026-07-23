@@ -1,3 +1,6 @@
+> [!NOTE]
+> **Notice:** This document is an internally generated, AI-assisted self-review produced during development. It is not an independent or third-party audit.
+
 # VIREON Ecosystem Architectural Audit
 
 This document outlines the findings of the comprehensive architectural audit of the VIREON ecosystem. The goal is to identify structural, security, and scalability bottlenecks preventing the platform from achieving industrial-grade and research-grade certification (e.g., FDA, academic reproducibility, vendor integration).

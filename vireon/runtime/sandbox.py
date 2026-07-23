@@ -48,7 +48,14 @@ def set_no_new_privs() -> bool:
 
 
 def set_seccomp_strict_mode() -> bool:
-    """Invokes Linux prctl(PR_SET_SECCOMP, SECCOMP_MODE_STRICT) to restrict syscalls to read, write, exit, sigreturn."""
+    """Invokes Linux prctl(PR_SET_SECCOMP, SECCOMP_MODE_STRICT) to restrict syscalls to read, write, exit, sigreturn.
+
+    Security Disclosure:
+        Seccomp strict mode execution is disabled by default in dev/test environments.
+        It is ONLY invoked if the environment variable `VIREON_ENFORCE_SECCOMP=1` is set.
+        If `VIREON_ENFORCE_SECCOMP` is not '1', this function logs a debug message and
+        returns True without making OS-level prctl syscalls.
+    """
     if sys.platform != "linux":
         return False
     if os.getenv("VIREON_ENFORCE_SECCOMP") != "1":
@@ -58,6 +65,7 @@ def set_seccomp_strict_mode() -> bool:
         libc = ctypes.CDLL("libc.so.6")
         res = libc.prctl(PR_SET_SECCOMP, SECCOMP_MODE_STRICT, 0, 0, 0)
         return res == 0
+
     except Exception as e:
         logger.warning(f"prctl(PR_SET_SECCOMP, SECCOMP_MODE_STRICT) failed: {e}")
         return False

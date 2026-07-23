@@ -1,6 +1,7 @@
-# VIREON Multi-Channel Dataset & Synthetic Generator Validation
+> [!NOTE]
+> **Notice:** This document is an internally generated, AI-assisted self-review produced during development. It is not an independent or third-party audit.
 
-**Standard:** `gemi3.6r/vvvv` (Phase 5 Datasets)  
+# VIREON Multi-Channel Dataset & Synthetic Generator Validation
 
 ## Synthetic Generator Capabilities (`vireon/datasets/synthetic.py`)
 - **Multi-Frequency EEG Composition:** Delta (2Hz), Alpha (10Hz), Beta (20Hz), Gamma (40Hz).

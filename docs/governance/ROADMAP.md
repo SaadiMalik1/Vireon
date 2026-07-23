@@ -1,29 +1,29 @@
-# VIREON Ecosystem Future Roadmap
+# VIREON Ecosystem Evolution & Roadmap
 
-This roadmap outlines the evolution of VIREON from its current state into an industry-standard neurotechnology validation and simulation ecosystem.
+This document outlines the evolutionary roadmap for VIREON, separating current verified capabilities from future technical ambitions.
 
-## 6-Month Roadmap (Consolidation & Compliance)
-**Goal:** Achieve baseline stability, reproducible testing, and architectural purity.
-- **Architecture:** Complete the flat-buffer/Arrow serialization boundary between `vireon` and `neurodsl`.
-- **Security:** Implement cryptographic plugin capability manifests and Wasm sandboxing prototypes.
-- **DevOps:** Establish the distributed monorepo CI/CD pipelines with Renovate, Sigstore, and automated SBOMs.
-- **Knowledge Base:** Formalize ISO 14971 Risk Matrices and IEC 62304 SOUP tracing.
+---
 
-## 12-Month Roadmap (Vendor Readiness)
-**Goal:** Enable medical device manufacturers to safely integrate proprietary firmware and telemetry models.
-- **SDK:** Finalize and freeze `vireon.sdk` v1.0.0. Publish cross-language bindings for C++ and Rust.
-- **Providers:** Deliver production-grade `SubprocessProvider` to isolate proprietary vendor binaries in secure gRPC containers.
-- **UI/UX:** Overhaul `vireon-lab` with high-performance WebGL visualizations capable of rendering 1024 channels at 30kHz seamlessly.
-- **Validation:** Publish the first external validation whitepaper demonstrating mathematically identical deterministic replays across ARM and x86 architectures.
+## 1. Current State (v1.1.0 Pre-Alpha Prototype)
 
-## 24-Month Roadmap (Academic & Regulatory Standard)
-**Goal:** Become the de facto standard for FDA computational modeling (ASME V&V 40) submissions.
-- **Simulation Fidelity:** Introduce sub-cellular modeling and large-scale Kuramoto dynamics utilizing GPU offloading (CUDA/Metal) in the `neurodsl` engine.
-- **Ecosystem:** Launch the VIREON Plugin Marketplace, allowing researchers to publish mathematically validated physiological models and threat signatures.
-- **Regulatory:** Obtain formal FDA MDDT (Medical Device Development Tool) qualification for VIREON as a validated computational modeling tool.
+- **Runtime Kernel:** Domain-agnostic event orchestrator (`VireonOrchestrator`), virtual clock (`DeterministicClock`), priority event bus, and thread-safe key-value store with Merkle leaf accumulation.
+- **Provider SDK:** `vireon.sdk` v1.1.0 with V1 provider interfaces (`IPhysicsProviderV1`, `IDynamicsProviderV1`, `IIDSProviderV1`, `IClinicalProviderV1`, `IPowerProviderV1`).
+- **Sandboxing & Capability Engine:** Process isolation via Linux `prctl(PR_SET_NO_NEW_PRIVS)` and Seccomp BPF profile generation (requires `VIREON_ENFORCE_SECCOMP=1`). Capability proxies for `EventBus` and `StateStore`.
+- **NeuroDSL Engine:** Embedded Rust bytecode compiler (`forge`) and VM (`scribe`) wrapped via PyO3 C-extensions (`crates/neurodsl`).
+- **Test Suite Status:** 66 Python tests passed, 44 Rust tests passed (110 total, 0 failed).
 
-## 5-Year Vision (The Validation Operating System)
-**Goal:** Ubiquity in neural interface engineering.
-- **Cloud Scale:** Launch a managed cloud control plane enabling massive Monte Carlo simulations of neural threat scenarios across thousands of virtual patients simultaneously.
-- **Zero Trust:** Establish VIREON's dynamic policy engine as the standard for in-vivo distributed neurotechnology networks.
-- **Community:** Transition governance to an independent foundation (e.g., Linux Foundation) with steering committees spanning Google Research, FDA, and leading neurotech firms.
+---
+
+## 2. Near-Term Roadmap (6-12 Months)
+
+- **Architecture:** Complete zero-copy shared memory SPSC ring buffer streaming between Python runtime and Rust `neurodsl` VM.
+- **Security:** Kernel-level eBPF bytecode attachments (ADR-006 proposal) and Wasmtime sandbox module (RFC-001 specification).
+- **DevOps:** Automated SBOM generation (CycloneDX) and signed evidence bundle releases.
+
+---
+
+## 3. Long-Term Vision (2-5 Years)
+
+- **Academic & Regulatory Integration:** Submitting computational model validation evidence frameworks for FDA computational modeling (ASME V&V 40) research.
+- **GPU Acceleration:** Sub-cellular modeling and large-scale neural dynamics utilizing GPU offloading (CUDA/Metal) in the `neurodsl` engine.
+- **Cloud Simulation:** Managed cloud control plane enabling Monte Carlo simulations across virtual patient cohorts.
