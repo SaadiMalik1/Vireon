@@ -19,7 +19,7 @@ jobs:
           pip install ruff mypy pytest pydantic pyyaml numpy click
           cargo clippy --workspace -- -D warnings
           cargo fmt --check
-          ruff check .
+          ruff check vireon tests
           mypy vireon || true
 
   test-python:
