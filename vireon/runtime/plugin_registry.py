@@ -20,7 +20,7 @@ Manages dynamic discovery, registration, and instantiation of simulation plugins
 import importlib
 import logging
 from dataclasses import dataclass
-from typing import Dict, Any, List, Optional, Type
+from typing import Dict, Any, List, Type
 
 logger = logging.getLogger(__name__)
 

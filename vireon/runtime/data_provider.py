@@ -18,7 +18,7 @@ Adapts physical hardware emulators and pre-recorded datasets into standard telem
 """
 
 import numpy as np
-from typing import Any, Tuple, Optional
+from typing import Any
 
 class DeviceProviderAdapter:
     """Adapts a hardware device emulator instance into a telemetry provider interface."""

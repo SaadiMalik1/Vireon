@@ -19,7 +19,6 @@ Provides real-time continuous trust evaluation and authorization decisions.
 
 from enum import Enum
 from dataclasses import dataclass
-from typing import Optional, Dict, Any
 
 class AuthorizationDecision(Enum):
     ALLOW = "ALLOW"
