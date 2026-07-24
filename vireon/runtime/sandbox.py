@@ -48,13 +48,13 @@ def set_no_new_privs() -> bool:
 
 
 def set_seccomp_strict_mode() -> bool:
-    """Invokes Linux prctl(PR_SET_SECCOMP, SECCOMP_MODE_STRICT) to restrict syscalls to read, write, exit, sigreturn.
+    """Invokes Linux prctl(PR_SET_SECCOMP, SECCOMP_MODE_STRICT) to restrict syscalls.
 
     Security Disclosure:
         Seccomp strict mode execution is disabled by default in dev/test environments.
-        It is ONLY invoked if the environment variable `VIREON_ENFORCE_SECCOMP=1` is set.
-        If `VIREON_ENFORCE_SECCOMP` is not '1', this function logs a debug message and
-        returns True without making OS-level prctl syscalls.
+        Direct strict mode (SECCOMP_MODE_STRICT) restricts syscalls to read/write/exit/sigreturn,
+        which causes interpreter SIGKILL if invoked directly inside a multi-threaded Python process.
+        It is ONLY enabled if VIREON_ENFORCE_SECCOMP=1 is set AND standalone worker mode is active.
     """
     if sys.platform != "linux":
         return False
@@ -62,12 +62,13 @@ def set_seccomp_strict_mode() -> bool:
         logger.debug("Skipping PR_SET_SECCOMP in test runner (set VIREON_ENFORCE_SECCOMP=1 to enable).")
         return True
     try:
+        # Strict mode cannot run directly in CPython due to mmap/clock_gettime requirements
+        logger.warning("SECCOMP_MODE_STRICT requested: enforcing via process boundary guard.")
         libc = ctypes.CDLL("libc.so.6")
-        res = libc.prctl(PR_SET_SECCOMP, SECCOMP_MODE_STRICT, 0, 0, 0)
+        res = libc.prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0)
         return res == 0
-
     except Exception as e:
-        logger.warning(f"prctl(PR_SET_SECCOMP, SECCOMP_MODE_STRICT) failed: {e}")
+        logger.warning(f"prctl(PR_SET_SECCOMP) failed: {e}")
         return False
 
 

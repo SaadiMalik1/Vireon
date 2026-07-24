@@ -95,18 +95,24 @@ class VireonOrchestrator(ILifecycleManager):
         self.provider_states[provider_id] = target_state
         return True
 
-    def initialize_all(self):
+    def initialize_all(self, trusted_public_key=None):
         """Advances all providers through DISCOVERED -> READY"""
+        from vireon.runtime.capability_engine import CapabilityEngine
+        from vireon.runtime.configuration import ExperimentConfig
+        cap_engine = CapabilityEngine(ExperimentConfig())
+
         for p_id, desc in self.descriptors.items():
             self.transition(p_id, ProviderState.VALIDATING_MANIFEST)
-            # In a real environment, we'd check manifest signatures here
-            
+            # Validate capability descriptor and signature if manifest present
+            provider = self.providers[p_id]
+            manifest = getattr(provider, "manifest", None)
+            if manifest:
+                if not cap_engine.validate_manifest(manifest, trusted_public_key=trusted_public_key):
+                    self.transition(p_id, ProviderState.ERROR)
+                    raise OrchestrationFault(f"Capability manifest validation failed for provider {p_id}")
+
             self.transition(p_id, ProviderState.RESOLVING_DEPENDENCIES)
-            # Ensure required capabilities are met by other registered providers
-            
             self.transition(p_id, ProviderState.NEGOTIATING_CAPABILITIES)
-            
-            # Build injected services
             self.transition(p_id, ProviderState.INITIALIZING)
             
             state_api = EnforcingStateAPI(self._global_state_store, desc)

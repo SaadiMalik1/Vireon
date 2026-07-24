@@ -19,6 +19,7 @@ Provides single-producer single-consumer (SPSC) lock-free ring buffer for
 high-frequency telemetry frame streaming (30kHz+ sample ingestion).
 """
 
+import threading
 from typing import Generic, TypeVar, Optional, List
 
 T = TypeVar("T")
@@ -26,7 +27,7 @@ T = TypeVar("T")
 
 class SPSCRingBuffer(Generic[T]):
     """
-    Lockless Single-Producer Single-Consumer Ring Buffer (ADR-015).
+    Thread-Safe Single-Producer Single-Consumer Ring Buffer (ADR-015).
     """
 
     def __init__(self, capacity: int = 1024):
@@ -35,31 +36,36 @@ class SPSCRingBuffer(Generic[T]):
         self._head = 0  # Write pointer
         self._tail = 0  # Read pointer
         self.dropped_samples = 0
+        self._lock = threading.Lock()
 
     def push(self, item: T) -> bool:
-        next_head = (self._head + 1) % self.capacity
-        if next_head == self._tail:
-            # Overwrite oldest sample on buffer overflow to protect producer lock-freedom
-            self._tail = (self._tail + 1) % self.capacity
-            self.dropped_samples += 1
+        with self._lock:
+            next_head = (self._head + 1) % self.capacity
+            if next_head == self._tail:
+                # Overwrite oldest sample on buffer overflow to protect producer lock-freedom
+                self._tail = (self._tail + 1) % self.capacity
+                self.dropped_samples += 1
 
-        self._buffer[self._head] = item
-        self._head = next_head
-        return True
+            self._buffer[self._head] = item
+            self._head = next_head
+            return True
 
     def pop(self) -> Optional[T]:
-        if self._head == self._tail:
-            return None  # Empty buffer
+        with self._lock:
+            if self._head == self._tail:
+                return None  # Empty buffer
 
-        item = self._buffer[self._tail]
-        self._buffer[self._tail] = None
-        self._tail = (self._tail + 1) % self.capacity
-        return item
+            item = self._buffer[self._tail]
+            self._buffer[self._tail] = None
+            self._tail = (self._tail + 1) % self.capacity
+            return item
 
     def is_empty(self) -> bool:
-        return self._head == self._tail
+        with self._lock:
+            return self._head == self._tail
 
     def size(self) -> int:
-        if self._head >= self._tail:
-            return self._head - self._tail
-        return self.capacity - (self._tail - self._head)
+        with self._lock:
+            if self._head >= self._tail:
+                return self._head - self._tail
+            return self.capacity - (self._tail - self._head)

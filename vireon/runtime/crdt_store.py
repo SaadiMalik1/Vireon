@@ -64,18 +64,24 @@ class CRDTStateStore:
     Backed by operation logs and LWWRegister/GCounter state views.
     """
 
-    def __init__(self, replica_id: str = "node_0"):
+    def __init__(self, replica_id: str = "node_0", max_op_log_size: int = 10000):
         self.replica_id = replica_id
+        self.max_op_log_size = max_op_log_size
         self._registers: Dict[str, LWWRegister] = {}
         self._counters: Dict[str, GCounter] = {}
         self.op_log: List[Dict[str, Any]] = []
+
+    def _append_log(self, entry: Dict[str, Any]) -> None:
+        self.op_log.append(entry)
+        if len(self.op_log) > self.max_op_log_size:
+            self.op_log = self.op_log[-self.max_op_log_size:]
 
     def set_register(self, key: str, value: Any, timestamp: Optional[float] = None) -> None:
         if key not in self._registers:
             self._registers[key] = LWWRegister()
         reg = self._registers[key]
         reg.assign(value, timestamp)
-        self.op_log.append({
+        self._append_log({
             "op": "set_register",
             "key": key,
             "val": value,
@@ -91,7 +97,7 @@ class CRDTStateStore:
         if key not in self._counters:
             self._counters[key] = GCounter()
         self._counters[key].increment(self.replica_id, value)
-        self.op_log.append({
+        self._append_log({
             "op": "inc_counter",
             "key": key,
             "val": value,

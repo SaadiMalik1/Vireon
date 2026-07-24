@@ -68,6 +68,7 @@ impl PyScribe {
             return Ok(eeg_data);
         }
 
+        self.inner.ip = 0;
         if let Err(e) = self.inner.execute(&self.bytecode, &eeg_data) {
             return Err(NeuroDSLExecutionError::new_err(format!(
                 "Scribe execution error: {:?}",

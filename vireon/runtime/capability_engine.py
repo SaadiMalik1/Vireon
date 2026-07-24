@@ -35,8 +35,8 @@ class CapabilityEngine:
             if manifest.requires_host_access:
                 return False
 
-        if trusted_public_key and manifest.signature:
-            if not manifest.verify_signature(trusted_public_key):
+        if trusted_public_key:
+            if not manifest.signature_bytes or not manifest.verify_signature(trusted_public_key):
                 return False
 
         return True

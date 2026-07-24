@@ -14,6 +14,7 @@
 
 import subprocess
 import os
+import shutil
 from typing import Optional, List, Any
 
 
@@ -21,21 +22,24 @@ def run_sandboxed(cmd: List[str], cwd: Optional[str] = None, input_data: Optiona
     """
     Executes a command inside a lightweight sandbox using bubblewrap (bwrap) to prevent 
     unauthorized filesystem and network access by the spawned process.
+    Falls back to direct execution if bwrap is not available on PATH.
     """
-    bwrap_cmd = [
-        "bwrap",
-        "--unshare-all",          # Unshare all namespaces (network, pid, ipc, etc.)
-        "--share-net",            # Allow network if needed for loopback sockets
-        "--ro-bind", "/", "/",    # Read-only root filesystem
-        "--proc", "/proc",        # Mount proc
-        "--dev", "/dev",          # Mount dev
-        "--tmpfs", "/tmp",        # Temporary /tmp
-        "--bind", cwd if cwd else os.getcwd(), cwd if cwd else os.getcwd(),  # Allow writing only to CWD
-    ]
-    bwrap_cmd.extend(cmd)
+    if shutil.which("bwrap"):
+        exec_cmd = [
+            "bwrap",
+            "--unshare-all",          # Unshare all namespaces (network, pid, ipc, etc.)
+            "--share-net",            # Allow network if needed for loopback sockets
+            "--ro-bind", "/", "/",    # Read-only root filesystem
+            "--proc", "/proc",        # Mount proc
+            "--dev", "/dev",          # Mount dev
+            "--tmpfs", "/tmp",        # Temporary /tmp
+            "--bind", cwd if cwd else os.getcwd(), cwd if cwd else os.getcwd(),  # Allow writing only to CWD
+        ] + cmd
+    else:
+        exec_cmd = cmd
     
     return subprocess.run(
-        bwrap_cmd,
+        exec_cmd,
         cwd=cwd,
         input=input_data,
         capture_output=True,
@@ -43,24 +47,26 @@ def run_sandboxed(cmd: List[str], cwd: Optional[str] = None, input_data: Optiona
     )
 
 def popen_sandboxed(cmd: List[str], cwd: Optional[str] = None, stdout: Any = None, stderr: Any = None) -> subprocess.Popen:
-
     """
     Spawns a process asynchronously inside a lightweight sandbox using bubblewrap.
+    Falls back to direct execution if bwrap is not available on PATH.
     """
-    bwrap_cmd = [
-        "bwrap",
-        "--unshare-all",
-        "--share-net",            # Need network for QEMU TCP sockets
-        "--ro-bind", "/", "/",
-        "--proc", "/proc",
-        "--dev", "/dev",
-        "--tmpfs", "/tmp",
-        "--bind", cwd if cwd else os.getcwd(), cwd if cwd else os.getcwd(),
-    ]
-    bwrap_cmd.extend(cmd)
+    if shutil.which("bwrap"):
+        exec_cmd = [
+            "bwrap",
+            "--unshare-all",
+            "--share-net",            # Need network for QEMU TCP sockets
+            "--ro-bind", "/", "/",
+            "--proc", "/proc",
+            "--dev", "/dev",
+            "--tmpfs", "/tmp",
+            "--bind", cwd if cwd else os.getcwd(), cwd if cwd else os.getcwd(),
+        ] + cmd
+    else:
+        exec_cmd = cmd
     
     return subprocess.Popen(
-        bwrap_cmd,
+        exec_cmd,
         cwd=cwd,
         stdout=stdout,
         stderr=stderr

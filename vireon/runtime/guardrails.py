@@ -19,6 +19,9 @@ Enforces the 8 Neuroethics Guardrails defined in VIREON (docs/GUARDRAILS.md)
 at the technical level within the VIREON platform.
 """
 
+import math
+
+
 class GuardrailViolation(Exception):
     pass
 
@@ -36,19 +39,22 @@ class GuardrailValidator:
             "G8": "Statistical Inflation: Account for validity failures in neuroimaging.",
         }
 
-    def validate_information_extraction(self, num_channels: int, sample_rate: float, resolution_bits: int):
+    def validate_information_extraction(self, num_channels: float, sample_rate: float, resolution_bits: float):
         """
         Functionally enforces G6 (Brain Reading Limits) and G1 (Neuromodesty) by bounding the 
         information entropy that can be extracted from the simulated signal.
-        Instead of playing word games with payload names, we restrict the mathematical channel capacity.
         """
+        if not (math.isfinite(num_channels) and math.isfinite(sample_rate) and math.isfinite(resolution_bits)):
+            raise GuardrailViolation(
+                "[G6 Violation] Invalid non-finite numerical telemetry parameter detected (NaN or Inf). "
+                "VIREON enforces Brain Reading Limits (G6)."
+            )
+
+        if num_channels <= 0 or sample_rate <= 0 or resolution_bits <= 0:
+            raise GuardrailViolation("[G6 Violation] Telemetry parameters must be strictly positive.")
+
         # Maximum theoretical bit rate = channels * sample_rate * resolution_bits
-        bit_rate_bps = num_channels * sample_rate * resolution_bits
-        
-        # A high-density 256-channel research array at 2000Hz and 24-bits yields ~12.2 Mbps.
-        # Sci-fi "mind reading" payloads usually assume unconstrained bandwidth.
-        # We cap the simulation at 50 Mbps to allow futuristic but plausible BCI, 
-        # while functionally blocking infinite-bandwidth "nanobot swarm" mind reading.
+        bit_rate_bps = float(num_channels) * float(sample_rate) * float(resolution_bits)
         max_allowed_bps = 50_000_000 
         
         if bit_rate_bps > max_allowed_bps:

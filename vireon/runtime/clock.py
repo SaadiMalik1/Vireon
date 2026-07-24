@@ -39,6 +39,7 @@ class DeterministicClock:
     def __init__(self, mode: ClockMode = ClockMode.VIRTUAL, initial_time: float = 0.0, step_dt_ms: float = 4.0):
         self._lock = threading.RLock()
         self.mode = mode
+        self._initial_time = initial_time
         self.sim_time = initial_time
         self.tick_count = 0
         self.step_dt_ms = step_dt_ms
@@ -47,12 +48,12 @@ class DeterministicClock:
 
     def advance(self, dt_sec: Optional[float] = None) -> float:
         with self._lock:
-            if dt_sec is None:
-                dt_sec = self.step_dt_sec
-
             if self.mode == ClockMode.VIRTUAL:
-                self.sim_time += dt_sec
                 self.tick_count += 1
+                if dt_sec is None:
+                    self.sim_time = self._initial_time + (self.tick_count * self.step_dt_sec)
+                else:
+                    self.sim_time += dt_sec
             else:
                 current_wall = time.monotonic()
                 self.sim_time = current_wall - self._wall_start_time
@@ -63,10 +64,13 @@ class DeterministicClock:
     def set_time(self, new_time: float) -> None:
         with self._lock:
             self.sim_time = new_time
+            self._initial_time = new_time
+            self.tick_count = 0
 
     def reset(self) -> None:
         with self._lock:
             self.sim_time = 0.0
+            self._initial_time = 0.0
             self.tick_count = 0
             self._wall_start_time = time.monotonic()
 
