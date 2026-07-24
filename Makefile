@@ -13,13 +13,16 @@ test-integration:
 
 verify:
 	python scripts/run_validation.py
+	python scripts/validate_docs.py
 
 validate:
 	python scripts/run_validation.py
+	python scripts/validate_docs.py
 
 lint:
 	ruff check .
 	mypy vireon
+	python scripts/validate_docs.py
 	cargo clippy --workspace -- -D warnings
 	cargo fmt --check
 

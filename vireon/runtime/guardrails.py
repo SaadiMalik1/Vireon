@@ -64,6 +64,36 @@ class GuardrailValidator:
             )
         return True
 
+    def calculate_shannon_entropy(self, data: bytes) -> float:
+        """Calculates Shannon entropy of a byte payload."""
+        if not data:
+            return 0.0
+        
+        # Calculate byte frequencies
+        from collections import Counter
+        freq = Counter(data)
+        
+        entropy = 0.0
+        for count in freq.values():
+            p_x = count / len(data)
+            entropy += - p_x * math.log2(p_x)
+            
+        return entropy
+
+    def validate_signal_entropy(self, data: bytes, max_entropy: float = 7.9):
+        """
+        Enforces G6 and G1 by ensuring the actual telemetry payload doesn't contain
+        anomalously high information density (e.g. encrypted exfiltration).
+        A truly biological EEG signal usually has lower entropy than pure random bytes.
+        """
+        entropy = self.calculate_shannon_entropy(data)
+        if entropy > max_entropy:
+            raise GuardrailViolation(
+                f"[G6/G1 Violation] Signal payload entropy ({entropy:.2f} bits/byte) is anomalously high. "
+                "This indicates potential non-biological data exfiltration."
+            )
+        return True
+
     def validate_attack_payload(self, attack_name: str, params: dict):
         """
         Validates that a configured attack respects neuroethics guardrails functionally.
