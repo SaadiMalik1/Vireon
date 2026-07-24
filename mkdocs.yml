@@ -17,6 +17,11 @@ nav:
   - Overview: README.md
   - Architecture: docs/architecture.md
   - Integration: docs/integration.md
+  - Guides:
+    - Datasets & Telemetry: docs/guides/DATASETS_GUIDE.md
+    - Developer Guide: docs/guides/DEVELOPER_GUIDE.md
+    - Operations Guide: docs/guides/OPERATIONS_GUIDE.md
+    - Migration Guide: docs/guides/MIGRATION_GUIDE.md
   - Architecture Decision Records:
     - ADR-001 Kernel Transition: docs/adr/ADR-001-kernel-transition.md
     - ADR-002 Control Data Plane Split: docs/adr/ADR-002-control-data-plane-split.md

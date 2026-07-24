@@ -21,3 +21,7 @@ class MyCustomProvider(IProvider):
 
 ## 3. Telemetry and Logging
 Use `vireon.sdk.logger` exclusively. Do not use Python's built-in `print` or `logging` modules directly, as they bypass the determinism trace logs.
+
+## 4. Datasets & Telemetry Loaders
+For synthetic physiological signal generation (EEG, ECG, EMG, Motor Imagery, SSVEP) and file loaders (NPZ, CSV, EDF), import from `vireon.datasets`. See [DATASETS_GUIDE.md](DATASETS_GUIDE.md) for detailed usage instructions.
+

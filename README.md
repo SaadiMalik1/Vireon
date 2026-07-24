@@ -15,7 +15,8 @@ VIREON provides a Python/Rust runtime engine for simulating and analyzing neurot
   - *Security Disclosure:* OS-level `SECCOMP_MODE_STRICT` enforcement is disabled by default in test environments and requires `VIREON_ENFORCE_SECCOMP=1` to be set.
 - **Capability Isolation:** Proxy wrappers (`EventBusProxy`, `StateStoreProxy`) enforcing topic whitelists and manifest authorization. Optional Ed25519 vendor signature verification when `trusted_public_key` is supplied.
 - **NeuroDSL Engine:** Embedded Rust bytecode compiler (`forge`) and VM (`scribe`) wrapped via PyO3 C-extensions (`crates/neurodsl`).
-- **Test Suite Status:** 66 Python tests passed (`pytest`), 44 Rust tests passed (`cargo test`). Total: 110 passed, 0 failed.
+- **Physiological Datasets & Loaders:** Comprehensive synthetic signal generators (EEG, ECG, EMG, Motor Imagery, SSVEP), standard format readers (`NPZ`, `CSV`, `EDF`), and benchmark loaders (`BCI Competition IV`, `PhysioNet`).
+- **Test Suite Status:** 80 Python tests passed (`pytest`), 44 Rust tests passed (`cargo test`). Total: 124 passed, 0 failed.
 
 ---
 
