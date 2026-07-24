@@ -41,6 +41,9 @@ class PluginRegistry:
             self._plugins[info.category] = {}
         self._plugins[info.category][info.name] = info
 
+    def has(self, category: str, name: str) -> bool:
+        return category in self._plugins and name in self._plugins[category]
+
     def get(self, category: str, name: str) -> PluginInfo:
         if category not in self._plugins or name not in self._plugins[category]:
             raise KeyError(f"Plugin '{name}' not found in category '{category}'")
@@ -55,6 +58,21 @@ class PluginRegistry:
 
     def list_category(self, category: str) -> List[PluginInfo]:
         return list(self._plugins.get(category, {}).values())
+
+    def load_entry_points(self, group: str = "vireon.plugins") -> None:
+        """Discovers and registers third-party external plugins via Python entry points."""
+        try:
+            from importlib.metadata import entry_points
+            eps = entry_points(group=group)
+            for ep in eps:
+                try:
+                    plugin_init = ep.load()
+                    if callable(plugin_init):
+                        plugin_init(self)
+                except Exception as e:
+                    logger.warning(f"Failed to load entry point plugin {ep.name}: {e}")
+        except Exception as e:
+            logger.debug(f"Entry points discovery skipped: {e}")
 
 def register_builtin_plugins(registry: PluginRegistry):
     """Registers built-in simulation plugins dynamically."""

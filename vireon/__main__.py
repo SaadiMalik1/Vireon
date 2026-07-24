@@ -25,11 +25,12 @@ Enables:
 import sys
 import os
 import click
-import importlib
-ValidationRunner = getattr(importlib.import_module("providers.clinical.validation"), "ValidationRunner")
 
 # Ensure the project root is in Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+import importlib
+ValidationRunner = getattr(importlib.import_module("providers.clinical.validation"), "ValidationRunner")
 
 
 @click.group()
